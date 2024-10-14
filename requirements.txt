@@ -1,0 +1,4 @@
+numpy
+Pillow
+gspread
+Flask (if you are using a dashboard)
