@@ -1,0 +1,21 @@
+Parameter,Key,Value
+DOT_COLORS,Color1,"(247, 227, 207)"
+DOT_COLORS,Color2,"(231, 187, 142)"
+DOT_COLORS,Color3,"(165, 119, 72)"
+PROJECT_TYPE_MAP,Tree Planting,0
+PROJECT_TYPE_MAP,Solar Energy,1
+PROJECT_TYPE_MAP,Water Conservation,2
+PROJECT_TYPE_MAP,Wastewater Recycling,3
+PROJECT_TYPE_MAP,Wind Energy,4
+PROJECT_TYPE_MAP,Pond Rehabilitation,5
+PROJECT_TYPE_MAP,Reforestation,6
+PROJECT_TYPE_MAP,Urban Greening,7
+PROJECT_TYPE_MAP,Rainwater Harvesting,8
+PROJECT_TYPE_MAP,Biodiversity Support,9
+IMPACT_UNIT_MAP,Trees,0
+IMPACT_UNIT_MAP,MWh,1
+IMPACT_UNIT_MAP,Liters,2
+IMPACT_UNIT_MAP,Cubic Meters,3
+IMPACT_UNIT_MAP,Hectares,4
+IMPACT_UNIT_MAP,Species,5
+TOTAL_DOTS,Value,140
