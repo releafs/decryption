@@ -3,7 +3,7 @@ name: Image Processing Pipeline
 on:
   push:
     paths:
-      - 'decryption/input/**'  # Trigger the workflow when a file is pushed to 'decryption/input' directory
+      - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input' directory
 
 jobs:
   process-images:
@@ -25,23 +25,19 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Run script0.py from the correct path (scripts/ directory)
-    - name: Run script0.py
-      run: python scripts/script0.py  # Correct the path
-
-    # Step 5: Run script1.py from the correct path
+    # Step 4: Run script1.py to process the uploaded image
     - name: Run script1.py
-      run: python scripts/script1.py  # Correct the path
+      run: python scripts/script1.py  # Start from script1.py, since script0.py only uploads
 
-    # Step 6: Run script2.py from the correct path
+    # Step 5: Run script2.py to further process data
     - name: Run script2.py
-      run: python scripts/script2.py  # Correct the path
+      run: python scripts/script2.py  # Correct path to script2.py
 
-    # Step 7: Run script3.py from the correct path
+    # Step 6: Run script3.py to merge data and generate final output
     - name: Run script3.py
-      run: python scripts/script3.py  # Correct the path
+      run: python scripts/script3.py  # Correct path to script3.py
 
-    # Step 8: Upload the final processed output as an artifact
+    # Step 7: Upload the final processed output as an artifact
     - name: Upload Final Output
       uses: actions/upload-artifact@v3
       with:
