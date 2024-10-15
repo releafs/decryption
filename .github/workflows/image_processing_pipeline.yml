@@ -3,20 +3,25 @@ name: Image Processing Pipeline
 on:
   push:
     paths:
-      - 'decryption/input/**'  # Trigger when a file is pushed to the 'decryption/input/' directory
+      - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input/'
 
 jobs:
   process-images:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  # Allow pushing changes to the repository
+
     steps:
     # Step 1: Check out the repository
     - name: Checkout Repository
-      uses: actions/checkout@v4  # Updated to v4
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true  # Ensure Git credentials are available
 
     # Step 2: Set up Python environment
     - name: Set up Python
-      uses: actions/setup-python@v5  # Updated to v5
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
@@ -25,35 +30,25 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Run script1.py to process the uploaded image
+    # Step 4: Run script1.py
     - name: Run script1.py
       run: python scripts/script1.py
 
-    # Step 5: Run script2.py to further process the data
+    # Step 5: Run script2.py
     - name: Run script2.py
       run: python scripts/script2.py
 
-    # Step 6: Run script3.py to merge data and generate final output
+    # Step 6: Run script3.py
     - name: Run script3.py
       run: python scripts/script3.py
 
-    # Step 7: List files in the input directory before deletion
-    - name: List PNG files before deletion
-      run: ls -la ./decryption/input/
-
-    # Step 8: Delete uploaded PNG files from input directory with verbose logging
-    - name: Delete Uploaded PNGs
-      run: |
-        rm -v ./decryption/input/*.png
-        echo "Uploaded PNG files deleted."
-
-    # Step 9: List files in the input directory after deletion (for confirmation)
-    - name: List files after deletion
-      run: ls -la ./decryption/input/
-
-    # Step 10: Upload the final processed output as an artifact
+    # Step 7: Upload the final processed output as an artifact
     - name: Upload Final Output
       uses: actions/upload-artifact@v4
       with:
         name: processed-results
         path: './process/merged_data_with_metadata.csv'
+
+    # Step 8: Run script4.py to delete PNG files and push changes
+    - name: Delete Uploaded PNGs and Push Changes
+      run: python scripts/script4.py
