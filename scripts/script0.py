@@ -9,7 +9,7 @@ GITHUB_BRANCH = "main"  # Branch you're using
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Get the GitHub PAT from Streamlit Secrets
 
 # Define the input directory in your GitHub repository
-input_directory_in_github = "input/"
+input_directory_in_github = "decryption/input/"
 
 # GitHub API URL to upload files
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
@@ -20,8 +20,20 @@ st.title("Image Uploader to GitHub Repository")
 # File uploader widget
 uploaded_files = st.file_uploader("Choose PNG images to upload", type="png", accept_multiple_files=True)
 
+# Function to check if the file exists in the GitHub repository
+def check_if_file_exists(file_name):
+    url = f"{GITHUB_API_URL}{file_name}"
+    response = requests.get(url, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    if response.status_code == 200:
+        return response.json().get('sha')  # Return the sha of the existing file
+    return None
+
 # Function to upload the file to GitHub
-def upload_file_to_github(file_name, file_content):
+def upload_file_to_github(file_name, file_content, sha=None):
     # Prepare the data for the GitHub API request
     encoded_content = base64.b64encode(file_content).decode("utf-8")
     commit_message = f"Upload {file_name}"
@@ -31,6 +43,10 @@ def upload_file_to_github(file_name, file_content):
         "content": encoded_content,
         "branch": GITHUB_BRANCH
     }
+
+    # If the file exists, add the SHA to update it
+    if sha:
+        data["sha"] = sha
 
     url = f"{GITHUB_API_URL}{file_name}"
 
@@ -48,10 +64,13 @@ if uploaded_files:
         file_name = uploaded_file.name
         file_content = uploaded_file.getvalue()
 
-        # Upload the file to GitHub
-        response = upload_file_to_github(file_name, file_content)
+        # Check if the file already exists in the repository
+        sha = check_if_file_exists(file_name)
 
-        if response.status_code == 201:
+        # Upload the file to GitHub
+        response = upload_file_to_github(file_name, file_content, sha)
+
+        if response.status_code == 201 or response.status_code == 200:
             st.success(f"Successfully uploaded {file_name} to GitHub.")
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.text}")
