@@ -1,13 +1,12 @@
-name: Run Automated Script Pipeline
+name: Image Processing Pipeline
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch: # Allows manual trigger of the workflow
+    paths:
+      - 'input/**'  # Trigger the workflow when anything is pushed to the 'input' folder
 
 jobs:
-  run-scripts:
+  process-images:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,47 +16,23 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'  # Specify the Python version you need
+        python-version: '3.x'
 
     - name: Install Dependencies
       run: |
         pip install -r requirements.txt
 
-    - name: Create Input Directory
-      run: mkdir -p input process data
+    - name: Run script1.py
+      run: python script1.py
 
-    - name: Run script0.py (Upload and process image)
-      run: |
-        python script0.py
-      env:
-        INPUT_FOLDER: "./input"
-        OUTPUT_FOLDER: "./process"
-    
-    - name: Run script1.py (Process CSV from script0)
-      run: |
-        python script1.py
-      env:
-        INPUT_FOLDER: "./process"
-        OUTPUT_FOLDER: "./process"
-        DATA_FOLDER: "./data"
-    
-    - name: Run script2.py (Process CSV from script1)
-      run: |
-        python script2.py
-      env:
-        INPUT_FOLDER: "./process"
-        OUTPUT_FOLDER: "./process"
-        DATA_FOLDER: "./data"
-    
-    - name: Run script3.py (Merge data and save final output)
-      run: |
-        python script3.py
-      env:
-        PROCESS_FOLDER: "./process"
-        DATA_FOLDER: "./data"
+    - name: Run script2.py
+      run: python script2.py
 
-    - name: Upload Final CSV Artifact
+    - name: Run script3.py
+      run: python script3.py
+
+    - name: Upload final output
       uses: actions/upload-artifact@v3
       with:
-        name: final-output
-        path: ./process/merged_data_with_metadata.csv
+        name: processed-results
+        path: './process/merged_data_with_metadata.csv'
