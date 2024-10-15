@@ -1,0 +1,49 @@
+name: Image Processing Pipeline
+
+on:
+  push:
+    paths:
+      - 'decryption/input/**'  # Trigger when a file is pushed to 'input' directory
+
+jobs:
+  process-images:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    # Step 3: Install dependencies
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    # Step 4: Run script0.py (Already handles the uploaded image)
+    - name: Run script0.py
+      run: python script0.py
+
+    # Step 5: Run script1.py to process the CSV from script0
+    - name: Run script1.py
+      run: python script1.py
+
+    # Step 6: Run script2.py to further process the data from script1
+    - name: Run script2.py
+      run: python script2.py
+
+    # Step 7: Run script3.py to merge data and generate the final output
+    - name: Run script3.py
+      run: python script3.py
+
+    # Step 8: Upload the final processed output as an artifact
+    - name: Upload Final Output
+      uses: actions/upload-artifact@v3
+      with:
+        name: processed-results
+        path: './process/merged_data_with_metadata.csv'
