@@ -42,4 +42,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: processed-results
-        path: './process/merged_data_with_metadata.csv'
+        path: './output/merged_data_with_metadata.csv'
