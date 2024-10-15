@@ -57,7 +57,7 @@ jobs:
         DATA_FOLDER: "./data"
 
     - name: Upload Final CSV Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: final-output
         path: ./process/merged_data_with_metadata.csv
