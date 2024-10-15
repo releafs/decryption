@@ -9,7 +9,7 @@ METADATA_TSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/da
 # Define the directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
-PROCESS_DIR = os.path.join(ROOT_DIR, 'decryption', 'process')
+PROCESS_DIR = os.path.join(ROOT_DIR, 'decryption', 'output')
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
