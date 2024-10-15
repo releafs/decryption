@@ -6,7 +6,7 @@ import base64
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"  # Your GitHub repository
 GITHUB_BRANCH = "main"  # Branch you're using
-GITHUB_TOKEN = st.secrets["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"]  # Get the GitHub PAT from Streamlit Secrets
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Get the GitHub PAT from Streamlit Secrets
 
 # Define the input directory in your GitHub repository
 input_directory_in_github = "input/"
