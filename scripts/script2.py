@@ -3,14 +3,12 @@ import csv
 from PIL import Image
 import numpy as np
 
-
 # Define the directories relative to the root directory (not scripts/)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 DATA_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'data'))
 INPUT_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'decryption', 'input'))
 PROCESS_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'process'))
-
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
@@ -164,14 +162,14 @@ def main():
             if data:
                 project_type, impact_unit = map_values_to_names(data['project_value'], data['impact_value'], creation_file_path)
                 decrypted_data.append({
-    'Latitude': data['latitude'],
-    'Longitude': data['longitude'],
-    'Serial Number': data['date_number'],
-    'Impact Quantity': data['impact_quantity'],
-    'Project Type': project_type,
-    'Impact Unit': impact_unit,
-    'Binary Code': bit_string  # Add the binary code (bit string)
-})
+                    'Latitude': data['latitude'],
+                    'Longitude': data['longitude'],
+                    'Serial Number': data['date_number'],
+                    'Impact Quantity': data['impact_quantity'],
+                    'Project Type': project_type,
+                    'Impact Unit': impact_unit,
+                    'Binary Code': bit_string  # Add the binary code (bit string)
+                })
 
                 print(f"Decrypted data for {file_name}: {data}")
             else:
