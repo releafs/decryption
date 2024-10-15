@@ -1,11 +1,9 @@
 import os
 import streamlit as st
-
-# Print the working directory to check where the app is running
-st.write("Current working directory:", os.getcwd())
+from io import BytesIO
 
 # Define the absolute path for the input directory
-base_directory = os.path.dirname(os.path.abspath(__file__))  # Get the current script's directory
+base_directory = os.path.dirname(os.path.abspath(__file__))
 input_directory = os.path.join(base_directory, "decryption", "input")
 
 # Ensure the input directory exists
@@ -28,4 +26,7 @@ if uploaded_files:
             f.write(uploaded_file.getbuffer())
         
         st.success(f"Successfully uploaded {uploaded_file.name} to {input_directory}")
-        st.write(f"File saved at {file_path}")
+        
+        # Provide a download button for the file
+        file_bytes = uploaded_file.getvalue()
+        st.download_button(label=f"Download {uploaded_file.name}", data=file_bytes, file_name=uploaded_file.name)
