@@ -3,7 +3,7 @@ name: Image Processing Pipeline
 on:
   push:
     paths:
-      - 'decryption/input/**'  # Trigger the workflow when a file is pushed to 'input' directory
+      - 'decryption/input/**'  # Trigger the workflow when a file is pushed to 'decryption/input' directory
 
 jobs:
   process-images:
@@ -25,25 +25,21 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Run script0.py (Processes uploaded image)
+    # Step 4: Run script0.py from the correct path (scripts/ directory)
     - name: Run script0.py
-      working-directory: ./scripts  # Set working directory to the 'scripts' folder
-      run: python script0.py
+      run: python scripts/script0.py  # Correct the path
 
-    # Step 5: Run script1.py to process the CSV from script0
+    # Step 5: Run script1.py from the correct path
     - name: Run script1.py
-      working-directory: ./scripts  # Set working directory to the 'scripts' folder
-      run: python script1.py
+      run: python scripts/script1.py  # Correct the path
 
-    # Step 6: Run script2.py to further process the CSV from script1
+    # Step 6: Run script2.py from the correct path
     - name: Run script2.py
-      working-directory: ./scripts  # Set working directory to the 'scripts' folder
-      run: python script2.py
+      run: python scripts/script2.py  # Correct the path
 
-    # Step 7: Run script3.py to merge data and generate final output
+    # Step 7: Run script3.py from the correct path
     - name: Run script3.py
-      working-directory: ./scripts  # Set working directory to the 'scripts' folder
-      run: python script3.py
+      run: python scripts/script3.py  # Correct the path
 
     # Step 8: Upload the final processed output as an artifact
     - name: Upload Final Output
