@@ -37,6 +37,10 @@ jobs:
     - name: Run script3.py
       run: python scripts/script3.py  # Correct path to script3.py
 
+    # Step 6.5: List files in the process directory for debugging
+    - name: List process directory contents
+      run: ls -l ./decryption/process
+
     # Step 7: Upload the final processed output as an artifact (Updated version)
     - name: Upload Final Output
       uses: actions/upload-artifact@v3
