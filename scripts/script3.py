@@ -1,22 +1,39 @@
 import os
 import csv
+import requests
+from io import StringIO
 
-# Define the directories relative to the script location
+# URL of the metadata.tsv file (replace with your actual GitHub raw URL)
+METADATA_TSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/data/metadata.tsv'
+
+# Define the directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(SCRIPT_DIR, 'data')
-PROCESS_DIR = os.path.join(SCRIPT_DIR, 'process')
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+PROCESS_DIR = os.path.join(ROOT_DIR, 'decryption', 'process')
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
 
-# Function to load the Metadata from 'metadata.tsv'
+# Function to fetch TSV content from a URL
+def fetch_tsv_from_url(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        tsv_content = response.content.decode('utf-8')
+        return tsv_content
+    else:
+        print(f"Failed to fetch TSV from {url}. Status code: {response.status_code}")
+        return None
+
+# Function to load the Metadata from 'metadata.tsv' via URL
 def load_metadata():
-    metadata_file_path = os.path.join(DATA_DIR, 'metadata.tsv')
+    tsv_content = fetch_tsv_from_url(METADATA_TSV_URL)
+    if tsv_content is None:
+        return []
+    tsvfile = StringIO(tsv_content)
     metadata_data = []
-    with open(metadata_file_path, mode='r', newline='', encoding='utf-8') as tsvfile:
-        reader = csv.DictReader(tsvfile, delimiter='\t')
-        for row in reader:
-            metadata_data.append(row)
+    reader = csv.DictReader(tsvfile, delimiter='\t')
+    for row in reader:
+        metadata_data.append(row)
     return metadata_data
 
 # Function to load data from 'decrypted_data_with_binary.csv'
@@ -73,9 +90,16 @@ def save_to_csv(data):
 def main():
     # Load the Metadata
     metadata_data = load_metadata()
+    if not metadata_data:
+        print("Failed to load metadata.")
+        return
     
     # Load the data from 'decrypted_data_with_binary.csv'
     decrypted_data = load_decrypted_data_with_binary()
+    if not decrypted_data:
+        print("No decrypted data found to process.")
+        return
+
     merged_data = []
     matched_count = 0
     
