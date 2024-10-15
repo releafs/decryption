@@ -3,7 +3,7 @@ name: Image Processing Pipeline
 on:
   push:
     paths:
-      - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input' directory
+      - 'decryption/input/**'  # Trigger when a file is pushed to the 'decryption/input/' directory
 
 jobs:
   process-images:
@@ -27,9 +27,9 @@ jobs:
 
     # Step 4: Run script1.py to process the uploaded image
     - name: Run script1.py
-      run: python scripts/script1.py  # Start from script1.py, since script0.py only uploads
+      run: python scripts/script1.py  # Start from script1.py, since script0.py only uploads the file
 
-    # Step 5: Run script2.py to further process data
+    # Step 5: Run script2.py to further process the data
     - name: Run script2.py
       run: python scripts/script2.py  # Correct path to script2.py
 
