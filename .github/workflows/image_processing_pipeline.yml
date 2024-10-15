@@ -43,7 +43,13 @@ jobs:
 
     # Step 8: Upload the final processed output as an artifact
     - name: Upload Final Output
-      uses: actions/upload-artifact@v4  # Updated to v4
+      uses: actions/upload-artifact@v4
       with:
         name: processed-results
         path: './process/merged_data_with_metadata.csv'
+
+    # Step 9: Delete uploaded PNG files from input directory
+    - name: Delete Uploaded PNGs
+      run: |
+        rm -f ./decryption/input/*.png
+        echo "Uploaded PNG files deleted."
