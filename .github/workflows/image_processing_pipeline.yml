@@ -25,21 +25,25 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Run script0.py (Handles uploaded image)
+    # Step 4: Run script0.py (Processes uploaded image)
     - name: Run script0.py
-      run: python scripts/script0.py  # Update the path to point to the correct location
+      working-directory: ./scripts  # Set working directory to the 'scripts' folder
+      run: python script0.py
 
-    # Step 5: Run script1.py to process CSV from script0
+    # Step 5: Run script1.py to process the CSV from script0
     - name: Run script1.py
-      run: python scripts/script1.py  # Update the path to point to the correct location
+      working-directory: ./scripts  # Set working directory to the 'scripts' folder
+      run: python script1.py
 
-    # Step 6: Run script2.py to further process CSV from script1
+    # Step 6: Run script2.py to further process the CSV from script1
     - name: Run script2.py
-      run: python scripts/script2.py  # Update the path to point to the correct location
+      working-directory: ./scripts  # Set working directory to the 'scripts' folder
+      run: python script2.py
 
     # Step 7: Run script3.py to merge data and generate final output
     - name: Run script3.py
-      run: python scripts/script3.py  # Update the path to point to the correct location
+      working-directory: ./scripts  # Set working directory to the 'scripts' folder
+      run: python script3.py
 
     # Step 8: Upload the final processed output as an artifact
     - name: Upload Final Output
