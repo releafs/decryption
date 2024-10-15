@@ -3,11 +3,14 @@ import csv
 from PIL import Image
 import numpy as np
 
-# Define the directories relative to the script location
+
+# Define the directories relative to the root directory (not scripts/)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, 'data'))
-INPUT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, 'input'))
-PROCESS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, 'process'))
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+DATA_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'data'))
+INPUT_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'decryption', 'input'))
+PROCESS_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'process'))
+
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
