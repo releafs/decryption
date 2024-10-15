@@ -1,45 +1,76 @@
-name: Image Processing Pipeline
+import os
+import streamlit as st
+import requests
+import base64
 
-on:
-  push:
-    paths:
-      - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input' directory
+# Define GitHub repository details
+GITHUB_REPO = "releafs/decryption"  # Your GitHub repository
+GITHUB_BRANCH = "main"  # Branch you're using
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Get the GitHub PAT from Streamlit Secrets
 
-jobs:
-  process-images:
-    runs-on: ubuntu-latest
+# Define the input directory in your GitHub repository
+input_directory_in_github = "decryption/input/"
 
-    steps:
-    # Step 1: Check out the repository
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+# GitHub API URL to upload files
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
 
-    # Step 2: Set up Python environment
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+# Title of the Streamlit App
+st.title("Image Uploader to GitHub Repository")
 
-    # Step 3: Install dependencies
-    - name: Install Dependencies
-      run: |
-        pip install -r requirements.txt
+# File uploader widget
+uploaded_files = st.file_uploader("Choose PNG images to upload", type="png", accept_multiple_files=True)
 
-    # Step 4: Run script1.py to process the uploaded image
-    - name: Run script1.py
-      run: python scripts/script1.py  # Start from script1.py, since script0.py only uploads
+# Function to check if the file exists in the GitHub repository
+def check_if_file_exists(file_name):
+    url = f"{GITHUB_API_URL}{file_name}"
+    response = requests.get(url, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
 
-    # Step 5: Run script2.py to further process data
-    - name: Run script2.py
-      run: python scripts/script2.py  # Correct path to script2.py
+    if response.status_code == 200:
+        return response.json().get('sha')  # Return the sha of the existing file
+    return None
 
-    # Step 6: Run script3.py to merge data and generate final output
-    - name: Run script3.py
-      run: python scripts/script3.py  # Correct path to script3.py
+# Function to upload the file to GitHub
+def upload_file_to_github(file_name, file_content, sha=None):
+    # Prepare the data for the GitHub API request
+    encoded_content = base64.b64encode(file_content).decode("utf-8")
+    commit_message = f"Upload {file_name}"
 
-    # Step 7: Upload the final processed output as an artifact
-    - name: Upload Final Output
-      uses: actions/upload-artifact@v3
-      with:
-        name: processed-results
-        path: './process/merged_data_with_metadata.csv'
+    data = {
+        "message": commit_message,
+        "content": encoded_content,
+        "branch": GITHUB_BRANCH
+    }
+
+    # If the file exists, add the SHA to update it
+    if sha:
+        data["sha"] = sha
+
+    url = f"{GITHUB_API_URL}{file_name}"
+
+    # Send the request to upload the file
+    response = requests.put(url, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    return response
+
+# Save the uploaded files to the GitHub repository
+if uploaded_files:
+    for uploaded_file in uploaded_files:
+        file_name = uploaded_file.name
+        file_content = uploaded_file.getvalue()
+
+        # Check if the file already exists in the repository
+        sha = check_if_file_exists(file_name)
+
+        # Upload the file to GitHub
+        response = upload_file_to_github(file_name, file_content, sha)
+
+        if response.status_code == 201 or response.status_code == 200:
+            st.success(f"Successfully uploaded {file_name} to GitHub.")
+        else:
+            st.error(f"Failed to upload {file_name}. Response: {response.text}")
