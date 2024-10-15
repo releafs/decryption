@@ -6,8 +6,7 @@ import base64
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"  # Your GitHub repository
 GITHUB_BRANCH = "main"  # Branch you're using
-GITHUB_TOKEN = "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"  # Your GitHub PAT
-
+GITHUB_TOKEN = "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"
 # Define the input directory in your GitHub repository
 input_directory_in_github = "input/"
 
