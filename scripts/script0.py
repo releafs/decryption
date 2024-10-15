@@ -1,48 +1,41 @@
 import os
-from flask import Flask, request, redirect, url_for, render_template
-from werkzeug.utils import secure_filename
+import streamlit as st
 
-# Configuration for the upload folder
-UPLOAD_FOLDER = 'input/'
-ALLOWED_EXTENSIONS = {'png'}
+# Define directories
+input_directory = "input/"
+process_directory = "process/"
 
-# Create the 'input' folder if it doesn't exist
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Ensure the directories exist
+if not os.path.exists(input_directory):
+    os.makedirs(input_directory)
 
-# Flask app setup
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+if not os.path.exists(process_directory):
+    os.makedirs(process_directory)
 
-# Function to check if the uploaded file is allowed (only PNG files)
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+# Title of the Streamlit App
+st.title("Image Uploader and Processing Pipeline")
 
-# Route for the upload page
-@app.route('/')
-def upload_form():
-    return render_template('upload.html')
+# File uploader widget
+uploaded_files = st.file_uploader("Choose PNG images to upload", type="png", accept_multiple_files=True)
 
-# Route to handle file upload
-@app.route('/', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return redirect(request.url)
-    
-    files = request.files.getlist('file')
-    uploaded_files = []
-    
-    for file in files:
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            uploaded_files.append(filename)
-    
-    if uploaded_files:
-        return f"Files uploaded successfully: {', '.join(uploaded_files)}"
-    else:
-        return "No valid PNG files were uploaded."
+# Save the uploaded files to the 'input' folder
+if uploaded_files:
+    for uploaded_file in uploaded_files:
+        file_path = os.path.join(input_directory, uploaded_file.name)
+        
+        # Save the uploaded file
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        st.success(f"Successfully uploaded {uploaded_file.name} to {input_directory}")
 
-# Main function to run the Flask app
-if __name__ == "__main__":
-    app.run(debug=True)
+    # Once files are uploaded, trigger the processing scripts
+    st.write("Starting the processing pipeline...")
+
+    # Call script1.py, script2.py, and script3.py sequentially
+    os.system("python script1.py")
+    os.system("python script2.py")
+    os.system("python script3.py")
+
+    st.success("Processing complete!")
+    st.write(f"Check the output in the '{process_directory}' directory.")
