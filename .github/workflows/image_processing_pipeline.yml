@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Check out the repository
+    # Step 1: Check out the repository (Updated version)
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3  # Updated to v3
 
-    # Step 2: Set up Python environment
+    # Step 2: Set up Python environment (Updated version)
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4  # Updated to v4
       with:
         python-version: '3.x'
 
@@ -37,9 +37,9 @@ jobs:
     - name: Run script3.py
       run: python scripts/script3.py  # Correct path to script3.py
 
-    # Step 7: Upload the final processed output as an artifact
+    # Step 7: Upload the final processed output as an artifact (Updated version)
     - name: Upload Final Output
       uses: actions/upload-artifact@v3
       with:
         name: processed-results
-        path: './decryption/process/merged_data_with_metadata.csv'
+        path: './decryption/process/merged_data_with_metadata.csv'  # Corrected path
