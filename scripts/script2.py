@@ -1,41 +1,63 @@
 import os
 import csv
+import requests
+from io import StringIO
 from PIL import Image
 import numpy as np
 
-# Define the directories relative to the root directory (not scripts/)
+# Function to fetch CSV content from a URL
+def fetch_csv_from_url(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        csv_content = response.content.decode('utf-8')
+        return csv_content
+    else:
+        print(f"Failed to fetch CSV from {url}. Status code: {response.status_code}")
+        return None
+
+# URLs of the CSV files (Replace 'your-username' and 'your-repo' with your actual GitHub username and repository)
+INVENTORY_CSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/data/inventory.csv'
+DOT_POSITIONS_CSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/data/dot_positions.csv'
+CREATION_TSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/data/metadata.tsv'
+
+# Define the directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
-DATA_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'data'))
-INPUT_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'decryption', 'input'))
-PROCESS_DIR = os.path.abspath(os.path.join(ROOT_DIR, 'process'))
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+INPUT_DIR = os.path.join(ROOT_DIR, 'decryption', 'input')
+PROCESS_DIR = os.path.join(ROOT_DIR, 'decryption', 'process')
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
 
 # Load DOT_COLORS and TOTAL_DOTS from the 'inventory.csv' file
-def fetch_parameters_from_inventory(inventory_file_path):
+def fetch_parameters_from_inventory(inventory_csv_url):
     dot_colors = []
     total_dots = None
-    with open(inventory_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            if row['Parameter'] == 'DOT_COLORS':
-                color_tuple = tuple(map(int, row['Value'].strip('()').split(',')))
-                dot_colors.append(color_tuple)
-            elif row['Parameter'] == 'TOTAL_DOTS':
-                total_dots = int(row['Value'])
+    csv_content = fetch_csv_from_url(inventory_csv_url)
+    if csv_content is None:
+        return dot_colors, total_dots
+    csvfile = StringIO(csv_content)
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        if row['Parameter'] == 'DOT_COLORS':
+            color_tuple = tuple(map(int, row['Value'].strip('()').split(',')))
+            dot_colors.append(color_tuple)
+        elif row['Parameter'] == 'TOTAL_DOTS':
+            total_dots = int(row['Value'])
     return dot_colors, total_dots
 
 # Load dot positions from 'dot_positions.csv'
-def load_dot_positions(dot_positions_file_path):
+def load_dot_positions(dot_positions_csv_url):
     dot_positions = []
-    with open(dot_positions_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            x = int(row['x'])
-            y = int(row['y'])
-            dot_positions.append((x, y))
+    csv_content = fetch_csv_from_url(dot_positions_csv_url)
+    if csv_content is None:
+        return dot_positions
+    csvfile = StringIO(csv_content)
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        x = int(row['x'])
+        y = int(row['y'])
+        dot_positions.append((x, y))
     return dot_positions
 
 # Function to map color to bit
@@ -103,19 +125,22 @@ def parse_bit_string(bit_string):
     }
 
 # Function to map project and impact values back to their names
-def map_values_to_names(project_value, impact_value, creation_file_path):
+def map_values_to_names(project_value, impact_value, creation_tsv_url):
     project_type = None
     impact_unit = None
-    with open(creation_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile, delimiter='\t')  # Assuming TSV format
-        for row in reader:
-            if 'Project Value' in row and int(row['Project Value']) == project_value:
-                project_type = row.get('Project Type', 'Unknown Project Type')
-            if 'Impact Value' in row and int(row['Impact Value']) == impact_value:
-                impact_unit = row.get('Impact Unit', 'Unknown Impact Unit')
+    csv_content = fetch_csv_from_url(creation_tsv_url)
+    if csv_content is None:
+        return 'Unknown Project Type', 'Unknown Impact Unit'
+    csvfile = StringIO(csv_content)
+    reader = csv.DictReader(csvfile, delimiter='\t')
+    for row in reader:
+        if 'Project Value' in row and int(row['Project Value']) == project_value:
+            project_type = row.get('Project Type', 'Unknown Project Type')
+        if 'Impact Value' in row and int(row['Impact Value']) == impact_value:
+            impact_unit = row.get('Impact Unit', 'Unknown Impact Unit')
     return project_type or 'Unknown Project Type', impact_unit or 'Unknown Impact Unit'
 
-# Function to save data to 'decrypted_data.csv'
+# Function to save data to 'decrypted_data_with_binary.csv'
 def save_to_csv(data, output_file_path):
     # Define the headers, including the 'Binary Code' column
     headers = ['Latitude', 'Longitude', 'Serial Number', 'Impact Quantity', 'Project Type', 'Impact Unit', 'Binary Code']
@@ -136,15 +161,15 @@ def save_to_csv(data, output_file_path):
 
 # Main decryption function
 def main():
-    # File paths
-    inventory_file_path = os.path.join(DATA_DIR, 'inventory.csv')
-    dot_positions_file_path = os.path.join(DATA_DIR, 'dot_positions.csv')
-    creation_file_path = os.path.join(DATA_DIR, 'metadata.tsv')
+    # URLs of the data files
+    inventory_csv_url = INVENTORY_CSV_URL
+    dot_positions_csv_url = DOT_POSITIONS_CSV_URL
+    creation_tsv_url = CREATION_TSV_URL
     output_file_path = os.path.join(PROCESS_DIR, 'decrypted_data_with_binary.csv')
 
     # Fetch parameters
-    DOT_COLORS, TOTAL_DOTS = fetch_parameters_from_inventory(inventory_file_path)
-    dot_positions = load_dot_positions(dot_positions_file_path)
+    DOT_COLORS, TOTAL_DOTS = fetch_parameters_from_inventory(inventory_csv_url)
+    dot_positions = load_dot_positions(dot_positions_csv_url)
 
     # Check if there are images in the input directory
     input_images = [f for f in os.listdir(INPUT_DIR) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.tif', '.tiff'))]
@@ -160,7 +185,7 @@ def main():
         if bit_string:
             data = parse_bit_string(bit_string)
             if data:
-                project_type, impact_unit = map_values_to_names(data['project_value'], data['impact_value'], creation_file_path)
+                project_type, impact_unit = map_values_to_names(data['project_value'], data['impact_value'], creation_tsv_url)
                 decrypted_data.append({
                     'Latitude': data['latitude'],
                     'Longitude': data['longitude'],
@@ -177,7 +202,7 @@ def main():
         else:
             print(f"Failed to decrypt {file_name}")
 
-    # Save decrypted data to 'decrypted_data.csv'
+    # Save decrypted data to 'decrypted_data_with_binary.csv'
     if decrypted_data:
         save_to_csv(decrypted_data, output_file_path)
         print(f"Decrypted data saved to {output_file_path}")
