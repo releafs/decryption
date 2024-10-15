@@ -37,19 +37,29 @@ jobs:
     - name: Run script3.py
       run: python scripts/script3.py
 
-    # Step 7: List files in the process directory (for debugging)
-    - name: List files in process directory
-      run: ls -la ./process
+    # Step 7: List files in the input directory before deletion
+    - name: List files before deletion
+      run: ls -la ./decryption/input
 
-    # Step 8: Upload the final processed output as an artifact
+    # Step 8: Delete uploaded PNG files using Python
+    - name: Delete Uploaded PNGs with Python
+      run: |
+        python -c "
+import os
+import glob
+png_files = glob.glob('./decryption/input/*.png')
+for file_path in png_files:
+    os.remove(file_path)
+print('PNG files deleted successfully.')
+        "
+
+    # Step 9: List files in the input directory after deletion
+    - name: List files after deletion
+      run: ls -la ./decryption/input
+
+    # Step 10: Upload the final processed output as an artifact
     - name: Upload Final Output
       uses: actions/upload-artifact@v4
       with:
         name: processed-results
         path: './process/merged_data_with_metadata.csv'
-
-    # Step 9: Delete uploaded PNG files from input directory
-    - name: Delete Uploaded PNGs
-      run: |
-        rm -f ./decryption/input/*.png
-        echo "Uploaded PNG files deleted."
