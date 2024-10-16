@@ -1,17 +1,21 @@
+I want to ask you to make sure the HTML result is embedded within the streamlit
+
+see the streamlit or script0.py
+
 import os
 import streamlit as st
 import requests
 import base64
-import streamlit.components.v1 as components  # For embedding HTML
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
 GITHUB_BRANCH = "main"  # Replace with your branch name
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
 
-# Define paths
-html_output_path = 'output/token_details.html'
+# Define the input directory in your GitHub repository
 input_directory_in_github = "decryption/input/"
+
+# GitHub API URL to upload files and check for existing files
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
 
 # Function to delete all files in the input directory
@@ -106,13 +110,3 @@ with col2:
 if uploaded_file is not None:
     with col1:
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-
-# Check if the HTML file exists and embed it within Streamlit
-if os.path.exists(html_output_path):
-    with open(html_output_path, 'r') as html_file:
-        html_content = html_file.read()
-        st.write("### Token Details")
-        # Embed the HTML content in Streamlit
-        components.html(html_content, height=600, scrolling=True)
-else:
-    st.warning(f"HTML file not found: {html_output_path}")
