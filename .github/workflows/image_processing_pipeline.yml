@@ -93,3 +93,4 @@ jobs:
     # Step 12: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
+ 
