@@ -31,7 +31,7 @@ jobs:
         pip install -r requirements.txt
 
     # Step 4: Run scriptx.py to clean up specific old CSV files
-    - name: Run scriptx.py (Clean up specific old CSVs)
+    - name: Run scriptx.py (Clean up old CSVs)
       run: python scripts/scriptx.py  # Running the custom clean-up script
 
     # Step 5: Run script1.py
@@ -69,12 +69,13 @@ jobs:
           git push
         fi
 
-    # Step 10: Upload the artifact (merged_data_with_metadata.csv) using v4
+    # Step 10: Upload the artifact (merged_data_with_metadata.csv) with overwrite
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results
         path: process/merged_data_with_metadata.csv
+        overwrite: true  # Ensure that we overwrite the old artifact
 
     # Step 11: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
