@@ -13,7 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # Allow pushing changes to the repository
+      contents: write  # Allow writing, modifying, and deleting contents in the repository
+      actions: write   # Ensure permission to delete, create, and update workflow actions
 
     steps:
     # Step 1: Check out the repository
