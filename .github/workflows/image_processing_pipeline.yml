@@ -39,19 +39,28 @@ jobs:
       run: |
         ls -la process/
 
-    # Step 6: Run script1.py
+    # Step 6: Ensure input directory exists and check for PNG files
+    - name: Create input directory if missing
+      run: mkdir -p decryption/input
+
+    - name: Check input directory for PNGs
+      run: |
+        echo "Checking input directory for PNGs:"
+        ls -la decryption/input/
+
+    # Step 7: Run script1.py
     - name: Run script1.py
       run: python scripts/script1.py
 
-    # Step 7: Run script2.py
+    # Step 8: Run script2.py
     - name: Run script2.py
       run: python scripts/script2.py
 
-    # Step 8: Run script3.py
+    # Step 9: Run script3.py
     - name: Run script3.py
       run: python scripts/script3.py
 
-    # Step 9: Debugging - Print generated files and their contents
+    # Step 10: Debugging - Print generated files and their contents
     - name: List files and display contents in process directory before upload
       run: |
         ls -la process/
@@ -60,7 +69,7 @@ jobs:
         echo "Contents of merged_data_with_metadata.csv:"
         cat process/merged_data_with_metadata.csv
 
-    # Step 10: Verify if the output file exists
+    # Step 11: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
@@ -70,7 +79,7 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 11: Stage and commit if changes exist (including deletions)
+    # Step 12: Stage and commit if changes exist (including deletions)
     - name: Stage and commit if changes exist
       run: |
         git config --global user.email "action@github.com"
@@ -81,9 +90,9 @@ jobs:
         else
           git commit -m "Add processed result"
           git push
-        fi  # Closing the if block correctly
+        fi
 
-    # Step 12: Upload the artifact (merged_data_with_metadata.csv) with overwrite
+    # Step 13: Upload the artifact (merged_data_with_metadata.csv) with overwrite
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
@@ -91,10 +100,10 @@ jobs:
         path: process/merged_data_with_metadata.csv
         overwrite: true  # Ensure that we overwrite the old artifact
 
-    # Step 13: Run script4.py to delete PNG files
+    # Step 14: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
       run: python scripts/script4.py
 
-    # Step 14: Clean up process directory
+    # Step 15: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
