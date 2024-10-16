@@ -14,7 +14,7 @@ GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your
 
 # Define the input directory in your GitHub repository
 input_directory_in_github = "decryption/input/"
-csv_file_path = 'output/merged_data_with_metadata.csv'  # Updated path to output directory
+csv_file_path = 'process/merged_data_with_metadata.csv'  # Updated path to output directory
 
 # Function to delete all files in the input directory
 def clear_input_directory():
