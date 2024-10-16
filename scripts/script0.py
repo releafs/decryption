@@ -1,21 +1,22 @@
 import os
 import streamlit as st
+import requests
+import base64
+import time
 import pandas as pd
-import json
-from flask import Flask, request, jsonify
-import hmac
-import hashlib
-
-# Create a Flask app
-app = Flask(__name__)
-
-# Define GitHub secret (use the secret you have 'releafstoken')
-SECRET = 'releafstoken'
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
 GITHUB_BRANCH = "main"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+
+# Define the input directory and process result paths in your GitHub repository
+input_directory_in_github = "decryption/input/"
+process_result_path = "decryption/process/merged_data_with_metadata.csv"
+
+# GitHub API URL to upload files and fetch results
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+GITHUB_PROCESS_RESULT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{process_result_path}"
 
 # List of parameters to extract from the CSV
 required_parameters = [
@@ -24,39 +25,63 @@ required_parameters = [
     "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
 ]
 
-# Function to verify the webhook signature from GitHub
-def verify_signature(payload, signature):
-    mac = hmac.new(SECRET.encode(), msg=payload, digestmod=hashlib.sha256)
-    return hmac.compare_digest('sha256=' + mac.hexdigest(), signature)
+# Function to check if the file exists in the GitHub repository
+def check_if_file_exists(file_name):
+    url = f"{GITHUB_API_URL}{file_name}"
+    response = requests.get(url, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
 
-# Webhook handler route
-@app.route('/webhook', methods=['POST'])
-def handle_webhook():
-    # Verify the signature
-    signature = request.headers.get('X-Hub-Signature-256')
-    if not signature or not verify_signature(request.data, signature):
-        return jsonify({'error': 'Invalid signature'}), 403
+    if response.status_code == 200:
+        return response.json().get('sha')  # Return the SHA of the existing file
+    return None
 
-    payload = request.json
-    if payload.get('action') == 'completed':
-        workflow_status = payload.get('workflow_run', {}).get('conclusion')
-        if workflow_status == 'success':
-            st.write("Workflow completed successfully. Fetching result...")
-            result = fetch_processed_result()  # Implement fetching logic
-            if result:
-                display_selected_parameters(result)
-            else:
-                st.error("Failed to fetch processed result.")
-        else:
-            st.error(f"Workflow failed with status: {workflow_status}")
-    return jsonify({'status': 'received'}), 200
+# Function to upload the file to GitHub
+def upload_file_to_github(file_name, file_content, sha=None):
+    encoded_content = base64.b64encode(file_content).decode("utf-8")
+    commit_message = f"Upload {file_name}"
 
-# Function to fetch the processed result (same as your wait_for_process_completion)
-def fetch_processed_result():
-    # Fetch the CSV result logic
-    pass
+    data = {
+        "message": commit_message,
+        "content": encoded_content,
+        "branch": GITHUB_BRANCH
+    }
 
-# Function to display the parameters in the Streamlit app
+    if sha:
+        data["sha"] = sha
+
+    url = f"{GITHUB_API_URL}{file_name}"
+
+    response = requests.put(url, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    return response
+
+# Function to fetch the processed result after a delay
+def wait_for_process_completion(delay=60):
+    # Sleep for 60 seconds to wait for the GitHub Actions process to complete
+    st.write(f"Waiting for {delay} seconds for the process to complete...")
+    time.sleep(delay)
+
+    # Now, try fetching the processed result
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
+    if response.status_code == 200:
+        file_info = response.json()
+        content = base64.b64decode(file_info["content"]).decode("utf-8")
+        return content
+    else:
+        st.error("Processed result could not be fetched after waiting.")
+        return None
+
+# Function to display the selected parameters in a two-column table
 def display_selected_parameters(csv_data):
     from io import StringIO
     data = StringIO(csv_data)
@@ -71,8 +96,16 @@ def display_selected_parameters(csv_data):
 
     st.table(parameters_df)
 
-# Set up Streamlit file uploader
+# Streamlit File Uploader
 st.title("Scan your Releafs Token")
+
+st.markdown(
+    """
+Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
+Powered by [Releafs](https://www.releafs.co)
+    """
+)
+
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
@@ -81,14 +114,21 @@ if uploaded_file is not None:
     file_name = uploaded_file.name
     file_content = uploaded_file.getvalue()
 
-    # Upload the file to GitHub (implement your upload logic here)
-    # response = upload_file_to_github(file_name, file_content)
+    sha = check_if_file_exists(file_name)
 
-    if True:  # Assuming upload is successful
-        st.write("File uploaded successfully! Waiting for webhook response...")
+    # Upload the file to GitHub
+    response = upload_file_to_github(file_name, file_content, sha)
+
+    if response.status_code in [201, 200]:
+        st.write("File uploaded successfully! Waiting for 1 minute...")
+
+        # Wait for 1 minute and then check for the processed CSV result
+        result = wait_for_process_completion()
+
+        if result:
+            st.success("Processing complete! Displaying the result below:")
+            display_selected_parameters(result)
+        else:
+            st.error("Could not retrieve the processed result.")
     else:
-        st.error("Failed to upload the file.")
-
-# Start the Flask app to handle webhooks
-if __name__ == '__main__':
-    app.run(port=8501)
+        st.error(f"Failed to upload {file_name}. Response: {response.text}")
