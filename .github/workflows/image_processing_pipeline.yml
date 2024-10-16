@@ -1,7 +1,7 @@
 name: Image Processing Pipeline
 
 on:
-  # Trigger on push to main branch or when a file is pushed to input directory
+  # Trigger on push to main branch or when a file is pushed to the input directory
   push:
     branches:
       - main
@@ -52,7 +52,7 @@ jobs:
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
-    # Step 7: Run the main processing scripts
+    # Step 7: Run the main processing scripts (No delay)
     - name: Run processing scripts
       run: |
         python scripts/script1.py
@@ -88,16 +88,3 @@ jobs:
     # Step 11: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
-
-  fetch-results:
-    needs: process-images  # Ensure this job waits for the previous job to finish
-    runs-on: ubuntu-latest
-
-    steps:
-    # Step 12: Check out the repository again
-    - name: Checkout Repository
-      uses: actions/checkout@v4  # Ensure the repository is checked out in this job
-
-    # Step 14: Run the fetching script (fetch.py) to retrieve the results
-    - name: Run fetch script
-      run: python scripts/fetch.py
