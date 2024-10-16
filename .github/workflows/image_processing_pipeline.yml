@@ -56,16 +56,16 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Commit the final processed output to the repository
-    - name: Commit final output
+    # Step 9: Stage all changes and untracked files for commit (add both modified and untracked files)
+    - name: Stage and commit all files
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add process/merged_data_with_metadata.csv
+        git add process/*.csv  # Add all CSV files
         git commit -m "Add processed result"
         git push
 
-    # Step 10: Run script4.py to delete PNG files (No need to commit deleted files again)
+    # Step 10: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
       run: |
         python scripts/script4.py
