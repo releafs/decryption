@@ -69,7 +69,7 @@ if uploaded_file is not None:
     st.write("Uploading and processing your file. Please wait...")
 
     # Introduce a delay to wait for the GitHub action to finish (adjust based on average time)
-    time.sleep(30)  # Wait for 30 seconds (adjust this as needed)
+    time.sleep(60)  # Wait for 30 seconds (adjust this as needed)
 
     # Fetch the processed CSV result from GitHub
     result = fetch_processed_result()
