@@ -113,9 +113,14 @@ if uploaded_file is not None:
     # Define the correct directory to save the uploaded file
     input_directory = os.path.join(os.getcwd(), 'decryption', 'input')
 
-    # Ensure the input directory exists
-    if not os.path.exists(input_directory):
-        os.makedirs(input_directory)
+    # Recreate the input directory each time (delete if it exists, then recreate)
+    if os.path.exists(input_directory):
+        # Remove the old directory and its contents
+        import shutil
+        shutil.rmtree(input_directory)
+    
+    # Create a fresh input directory
+    os.makedirs(input_directory)
 
     # Save the uploaded file to 'decryption/input/' directory
     file_path = os.path.join(input_directory, uploaded_file.name)
