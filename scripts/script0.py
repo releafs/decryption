@@ -65,7 +65,7 @@ def upload_file_to_github(file_name, file_content, sha=None):
         return response, None
 
 # Function to get the workflow run ID associated with a commit SHA
-def get_workflow_run_by_commit(commit_sha, retries=10, delay=10):
+def get_workflow_run_by_commit(commit_sha, retries=20, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
