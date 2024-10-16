@@ -15,6 +15,7 @@ input_directory_in_github = "decryption/input/"
 csv_file_path = 'process/merged_data_with_metadata.csv'
 
 # Function to delete all files in the input directory
+# Function to silently delete all files in the input directory without showing messages
 def clear_input_directory():
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
     response = requests.get(GITHUB_API_URL, headers={
@@ -22,10 +23,9 @@ def clear_input_directory():
         "Accept": "application/vnd.github.v3+json"
     })
 
-    # If the directory does not exist or is empty, skip without error
+    # If the directory does not exist or is empty, skip without any message
     if response.status_code == 404:
-        st.info("Input directory does not exist or is empty. Skipping directory clearing.")
-        return
+        return  # Silently skip
 
     if response.status_code == 200:
         files = response.json()
@@ -33,12 +33,9 @@ def clear_input_directory():
             file_name = file['name']
             sha = file['sha']
             delete_response = delete_file_in_github(file_name, sha)
-            if delete_response.status_code == 200:
-                st.write(f"Deleted {file_name} successfully.")
-            else:
-                st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
+            # Silent deletion without any message
     else:
-        st.error(f"Failed to list files in directory. Response: {response.status_code}, {response.text}")
+        return  # Silently skip in case of any error
 
 
 # Function to create a placeholder file if the directory does not exist
@@ -130,7 +127,7 @@ def display_token_details():
 
 
 # Streamlit Page Layout
-st.title("Upload and Process Your PNG File")
+st.title("Scan Your Releafs' Token")
 
 # Create two columns: left for the image, right for the file upload and info
 col1, col2 = st.columns([1, 2])
