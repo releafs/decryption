@@ -51,11 +51,17 @@ jobs:
     - name: Run script3.py
       run: python scripts/script3.py
 
-    # Step 9: Debugging - Print generated files before uploading
-    - name: List files in process directory before upload
-      run: |
-        ls -la process/
-        cat process/merged_data_with_metadata.csv  # Display contents of the file to ensure it's updated
+# Step 9: Debugging - Print generated files and their contents
+- name: List files and display contents in process directory before upload
+  run: |
+    ls -la process/
+    echo "Contents of decrypted_data.csv:"
+    cat process/decrypted_data.csv
+    echo "Contents of decrypted_data_with_binary.csv:"
+    cat process/decrypted_data_with_binary.csv
+    echo "Contents of merged_data_with_metadata.csv:"
+    cat process/merged_data_with_metadata.csv
+
 
     # Step 10: Verify if the output file exists
     - name: Verify output file exists
