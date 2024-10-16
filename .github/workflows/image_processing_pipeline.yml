@@ -44,7 +44,7 @@ jobs:
       run: python scripts/script1.py
 
     # Step 7: Run script2.py
-    - name: Run script2.py
+      - name: Run script2.py
       run: python scripts/script2.py
 
     # Step 8: Run script3.py
@@ -55,8 +55,6 @@ jobs:
     - name: List files and display contents in process directory before upload
       run: |
         ls -la process/
-        echo "Contents of decrypted_data.csv:"
-        cat process/decrypted_data.csv
         echo "Contents of decrypted_data_with_binary.csv:"
         cat process/decrypted_data_with_binary.csv
         echo "Contents of merged_data_with_metadata.csv:"
@@ -98,5 +96,5 @@ jobs:
       run: python scripts/script4.py
 
     # Step 14: Clean up process directory
-    - name: Clean up
+    - name: Clean up process directory
       run: rm -rf process/*
