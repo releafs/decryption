@@ -44,7 +44,7 @@ jobs:
 
     # Step 5: Run process.py to delete and recreate the 'process' directory
     - name: Reset process directory
-      run: python scripts/process.py  # This script will delete and recreate the process directory
+      run: python scripts/process.py  # This script will delete and recreate the process directory in the root
 
     # Step 6: Run script4.py to delete all files and the input directory
     - name: Delete input files and directory
