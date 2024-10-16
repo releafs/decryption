@@ -32,14 +32,9 @@ jobs:
 
     # Step 4: Run scriptx.py to clean up specific old CSV files
     - name: Run scriptx.py (Clean up old CSVs)
-      run: python scripts/scriptx.py  # This should delete the old CSV files
+      run: python scripts/scriptx.py  # This should delete the old CSV files, not the entire folder
 
-    # Step 5: Debugging - Print files after cleanup
-    - name: List files in process directory after cleaning
-      run: |
-        ls -la process/
-
-    # Step 6: Ensure input directory exists and check for PNG files
+    # Step 5: Ensure input directory exists and check for PNG files
     - name: Create input directory if missing
       run: mkdir -p decryption/input
 
@@ -48,9 +43,13 @@ jobs:
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
-    # Step 7: Run script1.py
+    # Step 6: Run script1.py
     - name: Run script1.py
       run: python scripts/script1.py
+
+    # Step 7: Ensure that script1 successfully produced output
+    - name: List files after script1.py
+      run: ls -la process/
 
     # Step 8: Run script2.py
     - name: Run script2.py
