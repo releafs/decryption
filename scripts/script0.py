@@ -39,7 +39,6 @@ def check_if_file_exists(file_name):
 
 # Function to upload the file to GitHub
 def upload_file_to_github(file_name, file_content, sha=None):
-    # Prepare the data for the GitHub API request
     encoded_content = base64.b64encode(file_content).decode("utf-8")
     commit_message = f"Upload {file_name}"
 
@@ -49,13 +48,11 @@ def upload_file_to_github(file_name, file_content, sha=None):
         "branch": GITHUB_BRANCH
     }
 
-    # If the file exists, add the SHA to update it
     if sha:
         data["sha"] = sha
 
     url = f"{GITHUB_API_URL}{file_name}"
 
-    # Send the request to upload the file
     response = requests.put(url, json=data, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -70,7 +67,6 @@ def get_latest_workflow_run_id():
         "Accept": "application/vnd.github.v3+json"
     }
 
-    # Get the list of workflow runs
     WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
     response = requests.get(WORKFLOW_RUNS_URL, headers=headers)
     if response.status_code == 200:
@@ -82,7 +78,7 @@ def get_latest_workflow_run_id():
         return None
 
 # Function to fetch the artifact
-def fetch_artifact(run_id, retries=5, delay=10):
+def fetch_artifact(run_id, retries=10, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -90,14 +86,11 @@ def fetch_artifact(run_id, retries=5, delay=10):
 
     ARTIFACTS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}/artifacts"
 
-    for _ in range(retries):
+    for attempt in range(retries):
         response = requests.get(ARTIFACTS_URL, headers=headers)
         if response.status_code == 200:
             artifacts = response.json()["artifacts"]
-            if not artifacts:
-                st.write("No artifacts found. Retrying...")
-                time.sleep(delay)
-            else:
+            if artifacts:
                 for artifact in artifacts:
                     if artifact["name"] == "processed-results":
                         download_url = artifact["archive_download_url"]
@@ -110,6 +103,9 @@ def fetch_artifact(run_id, retries=5, delay=10):
                         else:
                             st.error(f"Failed to download artifact: {artifact_response.text}")
                             return None
+            else:
+                st.write(f"Artifacts not found. Retrying {attempt+1}/{retries}...")
+                time.sleep(delay)
         else:
             st.error(f"Failed to fetch artifact: {response.text}")
             return None
@@ -123,22 +119,18 @@ def display_selected_parameters(csv_data):
     data = StringIO(csv_data)
     df = pd.read_csv(data)
 
-    # Filter the DataFrame to only include the required parameters
-    filtered_data = df[required_parameters].iloc[0]  # Take the first row of the filtered columns
+    filtered_data = df[required_parameters].iloc[0]
 
-    # Create a two-column table with 'Parameters' and 'Values'
     parameters_df = pd.DataFrame({
         "Parameters": filtered_data.index,
         "Values": filtered_data.values
     })
 
-    # Display the DataFrame as a table in Streamlit
     st.table(parameters_df)
 
 # Streamlit File Uploader
 st.title("Scan your Releafs Token")
 
-# Add the instruction text below the title
 st.markdown(
     """
 Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
@@ -149,18 +141,11 @@ Powered by [Releafs](https://www.releafs.co)
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
-    # Create two columns: left for the image, right for the table
-    col1, col2 = st.columns([1, 2])
+    st.write("Uploading and processing your file. Please wait...")
 
-    # Display the image in the left column
-    with col1:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-
-    # Get the file content
     file_name = uploaded_file.name
     file_content = uploaded_file.getvalue()
 
-    # Check if the file already exists in the repository
     sha = check_if_file_exists(file_name)
 
     # Upload the file to GitHub
@@ -169,7 +154,6 @@ if uploaded_file is not None:
     if response.status_code == 201 or response.status_code == 200:
         st.write("File uploaded successfully! Processing...")
 
-        # Wait for the workflow to process and fetch the artifact
         run_id = get_latest_workflow_run_id()
 
         if run_id:
@@ -179,8 +163,7 @@ if uploaded_file is not None:
 
             if result:
                 st.success("Processing complete! Displaying the result below:")
-                with col2:
-                    display_selected_parameters(result)
+                display_selected_parameters(result)
             else:
                 st.error("Could not retrieve the processed result.")
         else:
