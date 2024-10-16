@@ -5,7 +5,7 @@ import base64
 import time
 import zipfile
 import io
-
+import pandas as pd  # Ensure pandas is imported for handling tables
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
@@ -14,6 +14,13 @@ GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 # GitHub API URLs
 WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
 ARTIFACTS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{{run_id}}/artifacts"
+
+# List of parameters to extract from the CSV
+required_parameters = [
+    "Latitude", "Longitude", "Type of Token", "description", "external_url",
+    "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
+    "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
+]
 
 # Function to get the latest workflow run ID
 def get_latest_workflow_run_id():
@@ -32,7 +39,7 @@ def get_latest_workflow_run_id():
         st.error(f"Failed to fetch workflow runs: {response.text}")
         return None
 
-# Function to fetch the artifact (no changes here)
+# Function to fetch the artifact
 def fetch_artifact(run_id):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -62,6 +69,25 @@ def fetch_artifact(run_id):
                     return None
     return None
 
+# Function to display the selected parameters in a two-column table
+def display_selected_parameters(csv_data):
+    # Convert the CSV string into a Pandas DataFrame
+    from io import StringIO
+    data = StringIO(csv_data)
+    df = pd.read_csv(data)
+
+    # Filter the DataFrame to only include the required parameters
+    filtered_df = df[required_parameters].transpose()
+
+    # Create a two-column table with 'Parameters' and 'Values'
+    parameters_df = pd.DataFrame({
+        "Parameters": filtered_df.index,
+        "Values": filtered_df.iloc[:, 0]  # Assuming you want the first row's values
+    })
+
+    # Display the DataFrame as a table in Streamlit
+    st.table(parameters_df)
+
 # Streamlit File Uploader
 st.title("Image Uploader and Processing")
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
@@ -86,7 +112,7 @@ if uploaded_file is not None:
 
         if result:
             st.success("Processing complete! Displaying the result below:")
-            st.write(result)
+            display_selected_parameters(result)  # Display the selected parameters
         else:
             st.error("Could not retrieve the processed result.")
     else:
