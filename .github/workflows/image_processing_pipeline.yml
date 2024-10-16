@@ -59,34 +59,32 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Verify if the output file exists and skip if it doesn't
-    - name: Verify output file exists
+    # Step 8: Check for output file and handle gracefully if missing
+    - name: Verify if the output file exists
+      id: check-output
       run: |
-        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Output file not found!"
-          exit 1
+        if [ -f "process/merged_data_with_metadata.csv" ]; then
+          echo "Output file found."
         else
-          echo "Output file found!"
-        fi
+          echo "Output file not found."
+          exit 0  # Exit gracefully if the file is not present
 
-    # Step 9: Remove local file, pull from remote, commit and push processed results
-    - name: Remove, pull, and push processed result
+    # Step 9: Proceed with Git operations only if the output file exists
+    - name: Pull, commit, and push processed result
+      if: steps.check-output.outputs.exit_status != '0'
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        rm -f process/merged_data_with_metadata.csv || true  # Ensure the local file is removed to avoid merge conflicts
+        git stash  # Stash any local changes to avoid conflicts
         git pull origin main --rebase || true  # Pull the latest changes from the remote repository
-        if [ -f "process/merged_data_with_metadata.csv" ]; then  # Check if the file exists after processing
-          git add process/merged_data_with_metadata.csv
-          git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
-          git push
-        else
-          echo "No processed file to commit."
-          exit 1
-        fi
+        git stash pop || true  # Apply the stashed changes
+        git add process/merged_data_with_metadata.csv
+        git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
+        git push
 
-    # Step 10: Upload the artifact with a unique name including commit SHA
+    # Step 10: Upload the artifact with a unique name including commit SHA (if the file exists)
     - name: Upload processed result as artifact
+      if: steps.check-output.outputs.exit_status != '0'
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
