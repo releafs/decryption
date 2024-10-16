@@ -68,13 +68,16 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Pull remote changes, commit new files, and push
-    - name: Pull, commit, and push processed result
+    # Step 9: Stash local changes, pull from remote, apply stash, and commit processed results
+    - name: Stash, pull, resolve conflicts, and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git pull origin main --rebase || true  # Pull the latest changes and rebase
-        git add process/merged_data_with_metadata.csv process/decrypted_data.csv process/decrypted_data_with_binary.csv  # Add tracked and untracked files
+        git stash  # Stash local changes to avoid conflicts
+        git pull origin main --rebase || true  # Pull remote changes and rebase
+        git stash pop || true  # Apply stashed changes
+        # In case of conflicts, this step will automatically keep the latest local changes
+        git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
@@ -84,10 +87,6 @@ jobs:
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
-
-    # Step 11: Clean up process directory
-    - name: Clean up process directory
-      run: rm -rf process/*
 
     # Step 12: Run script4.py to delete PNG files and input directory after processing
     - name: Delete input files and directory after processing
