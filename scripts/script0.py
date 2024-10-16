@@ -104,6 +104,7 @@ def upload_file_to_github(file_name, file_content, sha=None):
     return response
 
 # Function to fetch the artifact and display token details
+# Function to fetch the artifact and display token details
 def display_token_details():
     # GitHub API URL for fetching artifacts
     GITHUB_API_ARTIFACT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/artifacts"
@@ -136,8 +137,8 @@ def display_token_details():
         zip_file = zipfile.ZipFile(io.BytesIO(artifact_response.content))
         zip_file.extractall()  # Extracting the files
         
-        # Step 5: Look for the CSV file in the extracted artifact in the 'output' directory
-        extracted_csv_file = 'output/merged_data_with_metadata.csv'  # Changed to output directory
+        # Step 5: Look for the CSV file in the extracted artifact
+        extracted_csv_file = 'process/merged_data_with_metadata.csv'  # Ensure this is the correct path
         
         if not os.path.exists(extracted_csv_file):
             st.error(f"CSV file not found in the artifact: {extracted_csv_file}")
