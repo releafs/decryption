@@ -82,6 +82,4 @@ jobs:
         python scripts/script4.py
 
     # Step 12: Clean up
-    - name: Clean up
-      run: |
-        rm -rf process/*
+    - name:
