@@ -69,18 +69,22 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Upload the processed CSV to AWS S3
-    - name: Upload processed result to S3
-      uses: jakejarvis/s3-sync-action@v0.5.1
-      with:
-        args: --acl public-read  # Optional: Set file permissions
-      env:
-        SOURCE_DIR: "process/merged_data_with_metadata.csv"
-        AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-east-1'  # Replace with your AWS region
+    # Step 9: Commit and push processed results if changes exist
+    - name: Commit and push processed result
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add process/merged_data_with_metadata.csv
+        git commit -m "Add processed result for ${{ github.sha }}"
+        git push
 
-    # Step 10: Clean up process directory
+    # Step 10: Upload the artifact with a unique name including commit SHA
+    - name: Upload processed result as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: processed-results-${{ github.sha }}
+        path: process/merged_data_with_metadata.csv
+
+    # Step 11: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
