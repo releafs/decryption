@@ -59,7 +59,7 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Verify if the output file exists
+    # Step 8: Verify if the output file exists and skip if it doesn't
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
@@ -74,11 +74,16 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        rm -f process/merged_data_with_metadata.csv  # Remove the local file to avoid merge conflicts
-        git pull origin main || true  # Pull the latest changes from the remote repository
-        git add process/merged_data_with_metadata.csv
-        git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
-        git push
+        rm -f process/merged_data_with_metadata.csv || true  # Ensure the local file is removed to avoid merge conflicts
+        git pull origin main --rebase || true  # Pull the latest changes from the remote repository
+        if [ -f "process/merged_data_with_metadata.csv" ]; then  # Check if the file exists after processing
+          git add process/merged_data_with_metadata.csv
+          git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
+          git push
+        else
+          echo "No processed file to commit."
+          exit 1
+        fi
 
     # Step 10: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
