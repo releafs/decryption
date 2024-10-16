@@ -62,11 +62,12 @@ jobs:
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
         git add process/*.csv || true
-        if git diff-index --quiet HEAD; then
+        if git diff --quiet; then
           echo "No changes to commit."
         else
           git commit -m "Add processed result"
           git push
+        fi
 
     # Step 10: Upload the artifact (merged_data_with_metadata.csv) using v4
     - name: Upload processed result as artifact
