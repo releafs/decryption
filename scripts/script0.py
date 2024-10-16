@@ -18,6 +18,9 @@ process_result_path = "decryption/process/merged_data_with_metadata.csv"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
 GITHUB_PROCESS_RESULT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{process_result_path}"
 
+# GitHub Actions API URL to check workflow status
+GITHUB_WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
+
 # List of parameters to extract from the CSV
 required_parameters = [
     "Latitude", "Longitude", "Type of Token", "description", "external_url",
@@ -60,8 +63,40 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Function to wait for the workflow completion by polling for the presence of the processed result
-def wait_for_process_completion(retries=20, delay=10):
+# Function to check the latest workflow status
+def check_workflow_status(retries=20, delay=15):
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    for attempt in range(retries):
+        response = requests.get(GITHUB_WORKFLOW_RUNS_URL, headers=headers)
+        if response.status_code == 200:
+            workflow_runs = response.json().get("workflow_runs", [])
+            if workflow_runs:
+                latest_run = workflow_runs[0]
+                status = latest_run.get("status")
+                conclusion = latest_run.get("conclusion")
+                st.write(f"Workflow status: {status}, Conclusion: {conclusion}")
+
+                if status == "completed" and conclusion == "success":
+                    return True
+                elif status == "completed" and conclusion != "success":
+                    st.error("Workflow completed but failed. Please check the logs.")
+                    return False
+            else:
+                st.write(f"No workflow runs found. Retrying {attempt+1}/{retries}...")
+        else:
+            st.error(f"Failed to check workflow status. Retrying {attempt+1}/{retries}...")
+
+        time.sleep(delay)
+
+    st.error("Workflow did not complete within the expected time.")
+    return False
+
+# Function to wait for the process result by polling for the presence of the processed result
+def wait_for_process_completion(retries=20, delay=15):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -119,20 +154,23 @@ if uploaded_file is not None:
     response = upload_file_to_github(file_name, file_content, sha)
 
     if response.status_code in [201, 200]:
-        st.write("File uploaded successfully! Processing...")
+        st.write("File uploaded successfully! Checking workflow status...")
 
-        # Wait for a few seconds before starting to check for the result
-        time.sleep(60)  # Adjust this delay based on average workflow completion time
+        # Wait for the workflow to complete by checking its status
+        workflow_completed = check_workflow_status()
 
-        # Wait for the workflow to complete and fetch the result directly from GitHub
-        result = None
-        with st.spinner("Waiting for the processed result..."):
-            result = wait_for_process_completion()
+        if workflow_completed:
+            # Wait for the result to be available after workflow completion
+            result = None
+            with st.spinner("Fetching the processed result..."):
+                result = wait_for_process_completion()
 
-        if result:
-            st.success("Processing complete! Displaying the result below:")
-            display_selected_parameters(result)
+            if result:
+                st.success("Processing complete! Displaying the result below:")
+                display_selected_parameters(result)
+            else:
+                st.error("Could not retrieve the processed result.")
         else:
-            st.error("Could not retrieve the processed result.")
+            st.error("Workflow did not complete successfully.")
     else:
         st.error(f"Failed to upload {file_name}. Response: {response.text}")
