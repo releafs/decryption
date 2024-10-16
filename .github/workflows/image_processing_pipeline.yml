@@ -98,10 +98,6 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4  # Ensure the repository is checked out in this job
 
-    # Step 13: Wait for processing to finish (fetch.py will handle the wait)
-    - name: Wait before fetching results
-      run: sleep 60  # 1-minute delay before running the fetch script
-
     # Step 14: Run the fetching script (fetch.py) to retrieve the results
     - name: Run fetch script
       run: python scripts/fetch.py
