@@ -22,24 +22,24 @@ def clear_input_directory():
         "Accept": "application/vnd.github.v3+json"
     })
 
+    # If the directory does not exist or is empty, skip without error
+    if response.status_code == 404:
+        st.info("Input directory does not exist or is empty. Skipping directory clearing.")
+        return
+
     if response.status_code == 200:
         files = response.json()
-        if len(files) == 0:
-            st.write("Directory is already empty.")
-        else:
-            for file in files:
-                file_name = file['name']
-                sha = file['sha']
-                delete_response = delete_file_in_github(file_name, sha)
-                if delete_response.status_code == 200:
-                    st.write(f"Deleted {file_name} successfully.")
-                else:
-                    st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
-    elif response.status_code == 404:
-        st.warning(f"Directory {input_directory_in_github} not found, creating it...")
-        create_placeholder_file()
+        for file in files:
+            file_name = file['name']
+            sha = file['sha']
+            delete_response = delete_file_in_github(file_name, sha)
+            if delete_response.status_code == 200:
+                st.write(f"Deleted {file_name} successfully.")
+            else:
+                st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
     else:
         st.error(f"Failed to list files in directory. Response: {response.status_code}, {response.text}")
+
 
 # Function to create a placeholder file if the directory does not exist
 def create_placeholder_file():
