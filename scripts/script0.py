@@ -24,16 +24,41 @@ def clear_input_directory():
 
     if response.status_code == 200:
         files = response.json()
-        for file in files:
-            file_name = file['name']
-            sha = file['sha']
-            delete_response = delete_file_in_github(file_name, sha)
-            if delete_response.status_code == 200:
-                st.write(f"Deleted {file_name} successfully.")
-            else:
-                st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
+        if len(files) == 0:
+            st.write("Directory is already empty.")
+        else:
+            for file in files:
+                file_name = file['name']
+                sha = file['sha']
+                delete_response = delete_file_in_github(file_name, sha)
+                if delete_response.status_code == 200:
+                    st.write(f"Deleted {file_name} successfully.")
+                else:
+                    st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
+    elif response.status_code == 404:
+        st.warning(f"Directory {input_directory_in_github} not found, creating it...")
+        create_placeholder_file()
     else:
         st.error(f"Failed to list files in directory. Response: {response.status_code}, {response.text}")
+
+# Function to create a placeholder file if the directory does not exist
+def create_placeholder_file():
+    file_name = ".gitkeep"  # Placeholder file
+    content = base64.b64encode(b'').decode('utf-8')  # Empty file content
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
+    data = {
+        "message": "Create input directory with placeholder file",
+        "content": content,
+        "branch": GITHUB_BRANCH
+    }
+    response = requests.put(url, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+    if response.status_code in [201, 200]:
+        st.write(f"Created {file_name} in {input_directory_in_github}.")
+    else:
+        st.error(f"Failed to create directory. Response: {response.status_code}, {response.text}")
 
 # Function to delete a file in the GitHub repository
 def delete_file_in_github(file_name, sha):
@@ -77,6 +102,7 @@ def upload_file_to_github(file_name, file_content, sha=None):
     return response
 
 # Function to display token details from the CSV file after the processing is done
+# Function to display token details from the CSV file after the processing is done
 def display_token_details():
     # Check if the CSV file exists
     if not os.path.exists(csv_file_path):
@@ -86,8 +112,8 @@ def display_token_details():
     # Read the CSV file
     df = pd.read_csv(csv_file_path)
 
-    # Get the last row of the dataframe
-    last_row = df.iloc[-1]
+    # Get the first row of the dataframe (changed from last row to first row)
+    first_row = df.iloc[0]
 
     # Extract the required parameters
     required_parameters = [
@@ -96,11 +122,12 @@ def display_token_details():
         "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
     ]
 
-    parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+    parameters = {param: first_row[param] for param in required_parameters if param in first_row}
 
     # Display content in Streamlit
     st.write("### Token Information:")
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
+
 
 # Streamlit Page Layout
 st.title("Upload and Process Your PNG File")
