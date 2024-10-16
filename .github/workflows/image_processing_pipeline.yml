@@ -88,30 +88,19 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 13: Stage and commit if changes exist (including deletions)
-    - name: Stage and commit if changes exist
+    # Step 13: Commit and push processed result to the repository
+    - name: Commit and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add -A process/ || true  # Stage all changes in process/, including deletions
-        if git diff --cached --quiet; then
-          echo "No changes to commit."
-        else
-          git commit -m "Add processed result"
-          git push
-        fi
+        git add process/merged_data_with_metadata.csv
+        git commit -m "Add processed result for ${{ github.sha }}"
+        git push
 
-    # Step 14: Upload the artifact with a unique name including commit SHA
-    - name: Upload processed result as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: processed-results-${{ github.sha }}
-        path: process/merged_data_with_metadata.csv
-
-    # Step 15: Run script4.py to delete PNG files
+    # Step 14: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
       run: python scripts/script4.py
 
-    # Step 16: Clean up process directory
+    # Step 15: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
