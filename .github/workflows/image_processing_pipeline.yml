@@ -79,7 +79,7 @@ jobs:
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
         git add process/merged_data_with_metadata.csv
-        git commit -m "Add processed result for ${{ github.sha }}"
+        git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
     # Step 11: Upload the artifact with a unique name including commit SHA
