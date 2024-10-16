@@ -1,7 +1,7 @@
 name: Image Processing Pipeline
 
 on:
-  # Trigger on push to main branch or when a file is pushed to input directory
+  # Trigger on push to main branch or when a file is pushed to the input directory
   push:
     branches:
       - main
@@ -59,7 +59,11 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Verify if the output file exists
+    # Step 8: Wait for 60 seconds to ensure all processes complete
+    - name: Delay for 1 minute
+      run: sleep 60
+
+    # Step 9: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
@@ -69,7 +73,7 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Commit and push processed results if changes exist
+    # Step 10: Commit and push processed results if changes exist
     - name: Commit and push processed result
       run: |
         git config --global user.email "action@github.com"
@@ -78,13 +82,13 @@ jobs:
         git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 10: Upload the artifact with a unique name including commit SHA
+    # Step 11: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
 
-    # Step 11: Clean up process directory
+    # Step 12: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
