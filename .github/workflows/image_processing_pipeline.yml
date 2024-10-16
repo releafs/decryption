@@ -83,6 +83,7 @@ jobs:
         else
           git commit -m "Add processed result"
           git push
+        fi  # Closing the if statement
 
     # Step 12: Upload the artifact (merged_data_with_metadata.csv) with overwrite
     - name: Upload processed result as artifact
@@ -97,5 +98,5 @@ jobs:
       run: python scripts/script4.py
 
     # Step 14: Clean up
-    - name: Clean up
+      name: Clean up
       run: rm -rf process/*
