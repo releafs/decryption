@@ -3,11 +3,6 @@ import csv
 from PIL import Image
 import numpy as np
 
-import os
-import csv
-from PIL import Image
-import numpy as np
-
 # Get the directory of the current script and correct paths relative to the root
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
