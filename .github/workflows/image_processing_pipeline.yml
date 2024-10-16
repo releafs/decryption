@@ -52,7 +52,6 @@ jobs:
         if [ ! -f "decryption/process/merged_data_with_metadata.csv" ]; then
           echo "Output file not found!"
           exit 1
-        fi
 
     # Step 9: Commit the final processed output to the repository
     - name: Commit final output
