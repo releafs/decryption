@@ -1,25 +1,28 @@
 name: Image Processing Pipeline
 
 on:
+  # Trigger on push to main branch or when a file is pushed to the input directory
   push:
     branches:
       - main
     paths:
-      - 'decryption/input/**'
+      - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input/'
 
 jobs:
   process-images:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: write  # Allow pushing changes to the repository
 
     steps:
+    # Step 1: Check out the repository
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
-        persist-credentials: true
+        persist-credentials: true  # Ensure Git credentials are available
 
+    # Step 2: Cache pip dependencies
     - name: Cache pip dependencies
       uses: actions/cache@v3
       with:
@@ -28,29 +31,35 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
 
+    # Step 3: Set up Python environment
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
+    # Step 4: Install dependencies (only if not cached)
     - name: Install Dependencies
       run: |
         pip install -r requirements.txt
 
+    # Step 5: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: mkdir -p decryption/input
+      run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
+    # Step 6: Debugging - List files in input directory to confirm they're present
     - name: Check input directory for PNGs
       run: |
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
+    # Step 7: Run the main processing scripts
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
 
+    # Step 8: Check for output file and handle gracefully if missing
     - name: Verify if the output file exists
       id: check-output
       run: |
@@ -61,16 +70,23 @@ jobs:
           echo "Output file not found."
           echo "file_exists=false" >> $GITHUB_ENV
           exit 0
+        fi
 
-    - name: Commit and force push processed result
+    # Step 9: Pull, commit, and push processed result
+    - name: Pull, commit, and push processed result
       if: env.file_exists == 'true'
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
         git add process/merged_data_with_metadata.csv
-        git commit -m "Add processed result for ${{ github.sha }}"
-        git push --force
+        git stash  # Stash any local changes to avoid conflicts
+        git pull origin main --rebase --autostash || true  # Pull the latest changes from the remote repository with autostash
+        git stash pop || true  # Apply the stashed changes
+        git add process/merged_data_with_metadata.csv
+        git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
+        git push
 
+    # Step 10: Upload the artifact with a unique name including commit SHA (if the file exists)
     - name: Upload processed result as artifact
       if: env.file_exists == 'true'
       uses: actions/upload-artifact@v4
@@ -78,8 +94,10 @@ jobs:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
 
+    # Step 11: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
 
+    # Step 12: Run script4.py to delete PNG files and input directory after processing
     - name: Delete input files and directory after processing
-      run: python scripts/script4.py
+      run: python scripts/script4.py  # This deletes all PNG files and the input directory after processing
