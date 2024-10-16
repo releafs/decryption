@@ -42,7 +42,7 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 5: Run process.py to delete and recreate the 'process' directory
+    # Step 5: Run process.py to delete and recreate the 'process' directory in the repository root
     - name: Reset process directory
       run: python scripts/process.py  # This script will delete and recreate the process directory in the root
 
@@ -52,13 +52,13 @@ jobs:
 
     # Step 7: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
+      run: mkdir -p ${{ github.workspace }}/decryption/input  # Create the input directory if it doesn't exist
 
     # Step 8: Debugging - List files in input directory to confirm it's empty
     - name: Check input directory for PNGs after deletion
       run: |
         echo "Checking input directory for PNGs after deletion:"
-        ls -la decryption/input/
+        ls -la ${{ github.workspace }}/decryption/input/
 
     # Step 9: Run the main processing scripts (No delay)
     - name: Run processing scripts
@@ -67,10 +67,10 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 10: Verify if the output file exists
+    # Step 10: Verify if the output file exists using an absolute path
     - name: Verify output file exists
       run: |
-        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
+        if [ ! -f "${{ github.workspace }}/process/merged_data_with_metadata.csv" ]; then
           echo "Output file not found!"
           exit 1
         else
@@ -96,4 +96,4 @@ jobs:
 
     # Step 13: Clean up process directory
     - name: Clean up process directory
-      run: rm -rf process/*
+      run: rm -rf ${{ github.workspace }}/process/*
