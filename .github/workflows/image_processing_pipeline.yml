@@ -30,14 +30,11 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Run scriptx.py to clean up specific old CSV files
-    - name: Run scriptx.py (Clean up old CSVs)
-      run: python scripts/scriptx.py  # This should delete the old CSV files, not the entire folder
-
-    # Step 5: Ensure input directory exists and check for PNG files
+    # Step 4: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
       run: mkdir -p decryption/input
 
+    # Step 5: Debugging - List files in input directory to confirm PNG existence
     - name: Check input directory for PNGs
       run: |
         echo "Checking input directory for PNGs:"
@@ -47,7 +44,7 @@ jobs:
     - name: Run script1.py
       run: python scripts/script1.py
 
-    # Step 7: Ensure that script1 successfully produced output
+    # Step 7: Ensure the process directory exists and list files
     - name: List files after script1.py
       run: ls -la process/
 
