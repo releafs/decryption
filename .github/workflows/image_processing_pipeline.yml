@@ -70,7 +70,7 @@ jobs:
           exit 1
         else
           echo "Output file found!"
-        fi  # Closing the if statement
+        fi
 
     # Step 11: Stage and commit if changes exist (including deletions)
     - name: Stage and commit if changes exist
@@ -83,7 +83,7 @@ jobs:
         else
           git commit -m "Add processed result"
           git push
-        fi  # Closing the if statement
+        fi
 
     # Step 12: Upload the artifact (merged_data_with_metadata.csv) with overwrite
     - name: Upload processed result as artifact
@@ -97,6 +97,6 @@ jobs:
     - name: Delete Uploaded PNGs
       run: python scripts/script4.py
 
-    # Step 14: Clean up
-      name: Clean up
+    # Step 14: Clean up process directory
+    - name: Clean up
       run: rm -rf process/*
