@@ -19,7 +19,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
-        persist-credentials: true
+        persist-credentials: true  # Ensure Git credentials are available
 
     # Step 2: Cache pip dependencies
     - name: Cache pip dependencies
@@ -36,7 +36,7 @@ jobs:
       with:
         python-version: '3.x'
 
-    # Step 4: Install dependencies
+    # Step 4: Install dependencies (only if not cached)
     - name: Install Dependencies
       run: |
         pip install -r requirements.txt
@@ -45,23 +45,23 @@ jobs:
     - name: Create input directory if missing
       run: mkdir -p decryption/input
 
-    # Step 6: Debugging - List files in input directory
+    # Step 6: Debugging - List files in input directory to confirm they're present
     - name: Check input directory for PNGs
       run: |
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
-    # Step 7: Run the main processing scripts
+    # Step 7: Run the main processing scripts (No delay)
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Verify if the output file exists in the output directory
+    # Step 8: Verify if the output file exists
     - name: Verify output file exists
       run: |
-        if [ ! -f "output/merged_data_with_metadata.csv" ]; then
+        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
           echo "Output file not found!"
           exit 1
         else
@@ -73,23 +73,21 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git stash
-        git pull origin main --rebase || true
-        git stash pop || true
-        git add output/merged_data_with_metadata.csv
+        git stash  # Stash local changes to avoid conflicts
+        git pull origin main --rebase || true  # Pull remote changes and rebase
+        git stash pop || true  # Apply stashed changes
+        # In case of conflicts, this step will automatically keep the latest local changes
+        git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 10: Upload the artifact from the output directory
+    # Step 10: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
-        path: output/merged_data_with_metadata.csv
+        path: process/merged_data_with_metadata.csv
 
-    # Step 11: Clean up output directory (Optional if needed)
-    - name: Clean up output directory
-      run: rm -rf output/*
 
     # Step 12: Run script4.py to delete PNG files and input directory after processing
     - name: Delete input files and directory after processing
