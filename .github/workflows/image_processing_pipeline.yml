@@ -81,6 +81,7 @@ jobs:
         else
           git commit -m "Add processed result"
           git push
+        fi  # Closing the if block correctly
 
     # Step 12: Upload the artifact (merged_data_with_metadata.csv) with overwrite
     - name: Upload processed result as artifact
