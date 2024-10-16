@@ -110,10 +110,18 @@ if uploaded_file is not None:
     with col1:
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
 
-    # Save the file locally
-    with open(f"input/{uploaded_file.name}", "wb") as f:
+    # Define the correct directory to save the uploaded file
+    input_directory = os.path.join(os.getcwd(), 'decryption', 'input')
+
+    # Ensure the input directory exists
+    if not os.path.exists(input_directory):
+        os.makedirs(input_directory)
+
+    # Save the uploaded file to 'decryption/input/' directory
+    file_path = os.path.join(input_directory, uploaded_file.name)
+    with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    
+
     st.write("File uploaded successfully! Processing...")
 
     # Dynamically get the latest workflow run ID
