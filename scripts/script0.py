@@ -3,8 +3,6 @@ import streamlit as st
 import requests
 import base64
 import time
-import zipfile
-import io
 import pandas as pd
 
 # Define GitHub repository details
@@ -12,11 +10,13 @@ GITHUB_REPO = "releafs/decryption"
 GITHUB_BRANCH = "main"  # Change if you're using a different branch
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
-# Define the input directory in your GitHub repository
+# Define the input directory and process result paths in your GitHub repository
 input_directory_in_github = "decryption/input/"
+process_result_path = "decryption/process/merged_data_with_metadata.csv"
 
-# GitHub API URL to upload files
+# GitHub API URL to upload files and fetch results
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+GITHUB_PROCESS_RESULT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{process_result_path}"
 
 # List of parameters to extract from the CSV
 required_parameters = [
@@ -58,82 +58,26 @@ def upload_file_to_github(file_name, file_content, sha=None):
         "Accept": "application/vnd.github.v3+json"
     })
 
-    # Returning both response and commit SHA
-    return response, data.get("sha")
+    return response
 
-# Function to get workflow run ID by commit SHA
-def get_workflow_run_by_commit(commit_sha):
+# Function to wait for the workflow completion by polling for the presence of the processed result
+def wait_for_process_completion(retries=20, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
-
-    WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
-    response = requests.get(WORKFLOW_RUNS_URL, headers=headers)
-    if response.status_code == 200:
-        workflow_runs = response.json()["workflow_runs"]
-        for run in workflow_runs:
-            if run["head_sha"] == commit_sha:
-                return run["id"]  # Return the run ID of the matching workflow run
-    return None
-
-# Function to wait for workflow completion
-def wait_for_workflow_completion(run_id, retries=20, delay=15):
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-
-    WORKFLOW_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}"
-    
-    for attempt in range(retries):
-        response = requests.get(WORKFLOW_URL, headers=headers)
-        if response.status_code == 200:
-            workflow = response.json()
-            if workflow["status"] == "completed":
-                return workflow["conclusion"] == "success"
-            else:
-                st.write(f"Workflow in progress. Retrying in {delay} seconds... ({attempt+1}/{retries})")
-                time.sleep(delay)
-        else:
-            st.error(f"Error fetching workflow status: {response.text}")
-            return False
-    return False
-
-# Function to fetch the artifact with the specific name
-def fetch_artifact(run_id, artifact_name, retries=20, delay=10):
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-
-    ARTIFACTS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}/artifacts"
 
     for attempt in range(retries):
-        response = requests.get(ARTIFACTS_URL, headers=headers)
+        response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
         if response.status_code == 200:
-            artifacts = response.json()["artifacts"]
-            if artifacts:
-                for artifact in artifacts:
-                    if artifact["name"] == artifact_name:
-                        download_url = artifact["archive_download_url"]
-                        artifact_response = requests.get(download_url, headers=headers)
-                        if artifact_response.status_code == 200:
-                            with zipfile.ZipFile(io.BytesIO(artifact_response.content)) as z:
-                                for file in z.namelist():
-                                    if file.endswith("merged_data_with_metadata.csv"):
-                                        return z.read(file).decode("utf-8")
-                        else:
-                            st.error(f"Failed to download artifact: {artifact_response.text}")
-                            return None
-            else:
-                st.write(f"Artifacts not found. Retrying {attempt+1}/{retries}...")
-                time.sleep(delay)
+            file_info = response.json()
+            content = base64.b64decode(file_info["content"]).decode("utf-8")
+            return content
         else:
-            st.error(f"Failed to fetch artifacts: {response.text}")
-            return None
+            st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
+            time.sleep(delay)
 
-    st.error(f"Artifact '{artifact_name}' could not be fetched after multiple retries.")
+    st.error("Processed result could not be fetched after multiple retries.")
     return None
 
 # Function to display the selected parameters in a two-column table
@@ -171,31 +115,21 @@ if uploaded_file is not None:
 
     sha = check_if_file_exists(file_name)
 
-    # Upload the file to GitHub and get the commit SHA
-    response, commit_sha = upload_file_to_github(file_name, file_content, sha)
+    # Upload the file to GitHub
+    response = upload_file_to_github(file_name, file_content, sha)
 
-    if response.status_code in [201, 200] and commit_sha:
+    if response.status_code in [201, 200]:
         st.write("File uploaded successfully! Processing...")
 
-        # Get the workflow run ID associated with the commit SHA
-        run_id = get_workflow_run_by_commit(commit_sha)
+        # Wait for the workflow to complete and fetch the result directly from GitHub
+        result = None
+        with st.spinner("Waiting for the processed result..."):
+            result = wait_for_process_completion()
 
-        if run_id:
-            st.write("Waiting for the workflow to complete...")
-            completed = wait_for_workflow_completion(run_id)
-            if completed:
-                result = None
-                artifact_name = f"processed-results-{commit_sha}"
-                with st.spinner("Fetching the processed artifact..."):
-                    result = fetch_artifact(run_id, artifact_name)
-                if result:
-                    st.success("Processing complete! Displaying the result below:")
-                    display_selected_parameters(result)
-                else:
-                    st.error("Could not retrieve the processed result.")
-            else:
-                st.error("Workflow did not complete successfully.")
+        if result:
+            st.success("Processing complete! Displaying the result below:")
+            display_selected_parameters(result)
         else:
-            st.error("Failed to find the workflow run associated with the file upload.")
+            st.error("Could not retrieve the processed result.")
     else:
         st.error(f"Failed to upload {file_name}. Response: {response.text}")
