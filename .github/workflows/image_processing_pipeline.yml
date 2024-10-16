@@ -32,7 +32,7 @@ jobs:
 
     # Step 4: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: mkdir -p decryption/input
+      run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
     # Step 5: Debugging - List files in input directory to confirm PNG existence
     - name: Check input directory for PNGs
@@ -48,9 +48,11 @@ jobs:
     - name: List files after script1.py
       run: ls -la process/
 
-    # Step 8: Run script2.py
+    # Step 8: Run script2.py (ensure input directory exists)
     - name: Run script2.py
-      run: python scripts/script2.py
+      run: |
+        mkdir -p decryption/input  # Ensure input directory exists
+        python scripts/script2.py
 
     # Step 9: Run script3.py
     - name: Run script3.py
