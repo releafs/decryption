@@ -67,7 +67,6 @@ jobs:
         else
           git commit -m "Add processed result"
           git push
-        fi
 
     # Step 10: Upload the artifact (merged_data_with_metadata.csv) using v4
     - name: Upload processed result as artifact
@@ -78,8 +77,8 @@ jobs:
 
     # Step 11: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
-      run: |
-        python scripts/script4.py
+      run: python scripts/script4.py
 
     # Step 12: Clean up
-    - name:
+    - name: Clean up
+      run: rm -rf process/*
