@@ -63,6 +63,8 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
+# Replace time.sleep(delay) with st.experimental_sleep(delay)
+
 # Function to check the latest workflow status
 def check_workflow_status(retries=20, delay=15):
     headers = {
@@ -90,7 +92,7 @@ def check_workflow_status(retries=20, delay=15):
         else:
             st.error(f"Failed to check workflow status. Retrying {attempt+1}/{retries}...")
 
-        time.sleep(delay)
+        st.experimental_sleep(delay)  # Use st.experimental_sleep here
 
     st.error("Workflow did not complete within the expected time.")
     return False
@@ -110,10 +112,11 @@ def wait_for_process_completion(retries=20, delay=15):
             return content
         else:
             st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
-            time.sleep(delay)
+            st.experimental_sleep(delay)  # Use st.experimental_sleep here
 
     st.error("Processed result could not be fetched after multiple retries.")
     return None
+
 
 # Function to display the selected parameters in a two-column table
 def display_selected_parameters(csv_data):
