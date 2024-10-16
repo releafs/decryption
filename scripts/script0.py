@@ -7,6 +7,7 @@ import base64
 GITHUB_REPO = "releafs/decryption"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
+# Function to fetch processed result
 def fetch_processed_result():
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -31,4 +32,4 @@ if result:
     st.write("Processing complete! Displaying the result...")
     st.write(result)
 else:
-    st.write("No processed results available yet.")
+    st.write("No processed results available yet. Please wait or check back later.")
