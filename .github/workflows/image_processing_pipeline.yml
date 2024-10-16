@@ -2,6 +2,8 @@ name: Image Processing Pipeline
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input/'
 
@@ -99,18 +101,16 @@ jobs:
           git push
         fi
 
-    # Step 14: Upload the artifact (merged_data_with_metadata.csv) with overwrite
+    # Step 14: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: processed-results
+        name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
-        overwrite: true  # Ensure that we overwrite the old artifact
 
     # Step 15: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
       run: python scripts/script4.py
 
     # Step 16: Clean up process directory
-    - name: Clean up process directory
       run: rm -rf process/*
