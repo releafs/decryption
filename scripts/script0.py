@@ -60,11 +60,15 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-ef wait_for_process_completion(retries=20, delay=10):
+def wait_for_process_completion(retries=30, initial_delay=60, subsequent_delay=30):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
+
+    # Initial wait for 1 minute before the first attempt
+    st.write(f"Waiting for {initial_delay} seconds before the first attempt...")
+    time.sleep(initial_delay)
 
     for attempt in range(retries):
         response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
@@ -73,8 +77,10 @@ ef wait_for_process_completion(retries=20, delay=10):
             content = base64.b64decode(file_info["content"]).decode("utf-8")
             return content
         else:
-            st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
-            time.sleep(delay)
+            st.write(f"Processed result not found. Retrying {attempt+1}/{retries} after {subsequent_delay} seconds...")
+
+        # Wait for 30 seconds before the next attempt
+        time.sleep(subsequent_delay)
 
     st.error("Processed result could not be fetched after multiple retries.")
     return None
