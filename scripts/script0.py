@@ -6,110 +6,70 @@ import time
 import pandas as pd
 
 # Define GitHub repository details
-GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
-GITHUB_BRANCH = "main"  # Replace with your branch name
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
+GITHUB_REPO = "releafs/decryption"
+GITHUB_BRANCH = "main"
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
-# Define the input directory in your GitHub repository
-input_directory_in_github = "decryption/input/"
-csv_file_path = 'process/merged_data_with_metadata.csv'
+# GitHub API URL to access artifacts
+GITHUB_API_ARTIFACTS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/artifacts"
 
-# Function to delete all files in the input directory
-def clear_input_directory():
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
-    response = requests.get(GITHUB_API_URL, headers={
+# Function to fetch the artifact URL and download the CSV file
+def fetch_artifact():
+    headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
-    })
+    }
 
+    # Get the list of artifacts
+    response = requests.get(GITHUB_API_ARTIFACTS_URL, headers=headers)
+    
     if response.status_code == 200:
-        files = response.json()
-        if len(files) == 0:
-            st.write("Directory is already empty.")
-        else:
-            for file in files:
-                file_name = file['name']
-                sha = file['sha']
-                delete_response = delete_file_in_github(file_name, sha)
-                if delete_response.status_code == 200:
-                    st.write(f"Deleted {file_name} successfully.")
+        artifacts = response.json().get("artifacts", [])
+        
+        # Find the most recent artifact (or you can match by name)
+        for artifact in artifacts:
+            if "processed-results" in artifact["name"]:
+                artifact_url = artifact["archive_download_url"]
+
+                # Download the artifact
+                artifact_response = requests.get(artifact_url, headers=headers)
+                if artifact_response.status_code == 200:
+                    with open("artifact.zip", "wb") as file:
+                        file.write(artifact_response.content)
+                    st.write("Artifact downloaded successfully.")
+                    return "artifact.zip"
                 else:
-                    st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
-    elif response.status_code == 404:
-        st.warning(f"Directory {input_directory_in_github} not found, creating it...")
-        create_placeholder_file()
+                    st.error(f"Failed to download artifact. Response: {artifact_response.status_code}")
+                    return None
     else:
-        st.error(f"Failed to list files in directory. Response: {response.status_code}, {response.text}")
+        st.error(f"Failed to fetch artifacts. Response: {response.status_code}")
+        return None
 
-# Function to create a placeholder file if the directory does not exist
-def create_placeholder_file():
-    file_name = ".gitkeep"  # Placeholder file
-    content = base64.b64encode(b'').decode('utf-8')  # Empty file content
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
-    data = {
-        "message": "Create input directory with placeholder file",
-        "content": content,
-        "branch": GITHUB_BRANCH
-    }
-    response = requests.put(url, json=data, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
-    if response.status_code in [201, 200]:
-        st.write(f"Created {file_name} in {input_directory_in_github}.")
+# Function to extract the CSV file from the downloaded artifact
+def extract_csv_from_artifact(artifact_path):
+    import zipfile
+
+    # Extract the artifact
+    with zipfile.ZipFile(artifact_path, 'r') as zip_ref:
+        zip_ref.extractall("extracted_artifact")
+    
+    # Check if the CSV is extracted
+    extracted_csv = os.path.join("extracted_artifact", "process", "merged_data_with_metadata.csv")
+    if os.path.exists(extracted_csv):
+        st.write("CSV extracted successfully.")
+        return extracted_csv
     else:
-        st.error(f"Failed to create directory. Response: {response.status_code}, {response.text}")
+        st.error("CSV file not found in the artifact.")
+        return None
 
-# Function to delete a file in the GitHub repository
-def delete_file_in_github(file_name, sha):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
-    url = f"{GITHUB_API_URL}{file_name}"
-    data = {
-        "message": f"Delete {file_name}",
-        "sha": sha,
-        "branch": GITHUB_BRANCH
-    }
-    response = requests.delete(url, json=data, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
-    return response
-
-# Function to upload the file to GitHub
-def upload_file_to_github(file_name, file_content, sha=None):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
-    encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
-    commit_message = f"Upload {file_name}"  # Commit message
-
-    data = {
-        "message": commit_message,
-        "content": encoded_content,
-        "branch": GITHUB_BRANCH
-    }
-
-    # If the file already exists, include the SHA to update it
-    if sha:
-        data["sha"] = sha
-
-    url = f"{GITHUB_API_URL}{file_name}"  # GitHub API URL for the file
-
-    # Send the request to upload the file to GitHub
-    response = requests.put(url, json=data, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
-
-    return response
-
-# Function to display token details from the CSV file after the processing is done
-def display_token_details():
-    # Check if the CSV file exists
-    if not os.path.exists(csv_file_path):
-        st.error(f"CSV file not found: {csv_file_path}")
+# Function to display token details from the artifact
+def display_token_details(artifact_csv_path):
+    if not os.path.exists(artifact_csv_path):
+        st.error(f"CSV file not found: {artifact_csv_path}")
         return
 
     # Read the CSV file
-    df = pd.read_csv(csv_file_path)
+    df = pd.read_csv(artifact_csv_path)
 
     # Get the last row of the dataframe
     last_row = df.iloc[-1]
@@ -130,41 +90,17 @@ def display_token_details():
 # Streamlit Page Layout
 st.title("Upload and Process Your PNG File")
 
-# Create two columns: left for the image, right for the file upload and info
-col1, col2 = st.columns([1, 2])
-
 # File uploader widget in the right column
-with col2:
-    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
 
-    if uploaded_file is not None:
-        # Display the file name and size
-        st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-
-        # Clear the input directory before uploading a new file
-        st.write("Clearing input directory...")
-        clear_input_directory()
-
-        file_name = uploaded_file.name
-        file_content = uploaded_file.getvalue()  # Get the content of the file
-
-        # Upload the file to GitHub (no need to check for existence because we cleared the directory)
-        response = upload_file_to_github(file_name, file_content)
-
-        if response.status_code in [201, 200]:
-            st.success(f"File {file_name} uploaded/updated successfully!")
-        else:
-            st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
-
-# Display the uploaded image on the left column
 if uploaded_file is not None:
-    with col1:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+    st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
+    st.write("Please wait for the processing to complete.")
 
-# Section to display the token details once the fetch.py script completes processing
-st.write("## Token Details")
-if st.button("Fetch Token Details"):
-    # Simulate delay for processing to be completed
-    st.write("Fetching token details after processing...")
-    time.sleep(60)  # Assuming the fetch happens after 1 minute (adjust as needed)
-    display_token_details()
+# Fetch and display token details from artifact
+if st.button("Fetch Token Details from Artifact"):
+    artifact_path = fetch_artifact()
+    if artifact_path:
+        csv_path = extract_csv_from_artifact(artifact_path)
+        if csv_path:
+            display_token_details(csv_path)
