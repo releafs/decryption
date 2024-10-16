@@ -42,12 +42,15 @@ jobs:
     - name: Run script3.py
       run: python scripts/script3.py
 
-    # Step 7: Upload the final processed output as an artifact
-    - name: Upload Final Output
-      uses: actions/upload-artifact@v4
-      with:
-        name: processed-results
-        path: './process/merged_data_with_metadata.csv'
+# Step 7: Commit the final processed output to the repository
+    - name: Commit final output
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add decryption/process/merged_data_with_metadata.csv
+        git commit -m "Add processed result"
+        git push
+
 
     # Step 8: Run script4.py to delete PNG files and push changes
     - name: Delete Uploaded PNGs and Push Changes
