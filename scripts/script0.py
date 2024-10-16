@@ -2,6 +2,8 @@ import os
 import streamlit as st
 import requests
 import base64
+import time
+import pandas as pd
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
@@ -10,12 +12,11 @@ GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your
 
 # Define the input directory in your GitHub repository
 input_directory_in_github = "decryption/input/"
-
-# GitHub API URL to upload files and check for existing files
-GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+csv_file_path = 'process/merged_data_with_metadata.csv'
 
 # Function to delete all files in the input directory
 def clear_input_directory():
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
     response = requests.get(GITHUB_API_URL, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -36,6 +37,7 @@ def clear_input_directory():
 
 # Function to delete a file in the GitHub repository
 def delete_file_in_github(file_name, sha):
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
     url = f"{GITHUB_API_URL}{file_name}"
     data = {
         "message": f"Delete {file_name}",
@@ -50,6 +52,7 @@ def delete_file_in_github(file_name, sha):
 
 # Function to upload the file to GitHub
 def upload_file_to_github(file_name, file_content, sha=None):
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
     encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
     commit_message = f"Upload {file_name}"  # Commit message
 
@@ -73,8 +76,34 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Streamlit File Uploader
-st.title("Upload a PNG File to GitHub")
+# Function to display token details from the CSV file after the processing is done
+def display_token_details():
+    # Check if the CSV file exists
+    if not os.path.exists(csv_file_path):
+        st.error(f"CSV file not found: {csv_file_path}")
+        return
+
+    # Read the CSV file
+    df = pd.read_csv(csv_file_path)
+
+    # Get the last row of the dataframe
+    last_row = df.iloc[-1]
+
+    # Extract the required parameters
+    required_parameters = [
+        "Latitude", "Longitude", "Type of Token", "description", "external_url",
+        "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
+        "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
+    ]
+
+    parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+
+    # Display content in Streamlit
+    st.write("### Token Information:")
+    st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
+
+# Streamlit Page Layout
+st.title("Upload and Process Your PNG File")
 
 # Create two columns: left for the image, right for the file upload and info
 col1, col2 = st.columns([1, 2])
@@ -106,3 +135,11 @@ with col2:
 if uploaded_file is not None:
     with col1:
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+
+# Section to display the token details once the fetch.py script completes processing
+st.write("## Token Details")
+if st.button("Fetch Token Details"):
+    # Simulate delay for processing to be completed
+    st.write("Fetching token details after processing...")
+    time.sleep(60)  # Assuming the fetch happens after 1 minute (adjust as needed)
+    display_token_details()
