@@ -2,17 +2,20 @@ import os
 import streamlit as st
 import requests
 import base64
+import time
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"  # Your GitHub repository
 GITHUB_BRANCH = "main"  # Branch you're using
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Get the GitHub PAT from Streamlit Secrets
 
-# Define the input directory in your GitHub repository
+# Define the input and process directories in your GitHub repository
 input_directory_in_github = "decryption/input/"
+process_directory_in_github = "decryption/process/"
 
-# GitHub API URL to upload files
+# GitHub API URLs
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+RESULT_FILE_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/{process_directory_in_github}merged_data_with_metadata.csv"
 
 # Title of the Streamlit App
 st.title("Image Uploader to GitHub Repository")
@@ -58,6 +61,14 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
+# Function to check if the result file is ready
+def check_for_result():
+    response = requests.get(RESULT_FILE_URL)
+    if response.status_code == 200:
+        return response.text  # Return the CSV data if available
+    else:
+        return None
+
 # Save the uploaded files to the GitHub repository
 if uploaded_files:
     for uploaded_file in uploaded_files:
@@ -72,5 +83,20 @@ if uploaded_files:
 
         if response.status_code == 201 or response.status_code == 200:
             st.success(f"Successfully uploaded {file_name} to GitHub.")
+            
+            # Once uploaded, check for the result every 10 seconds
+            st.write("Processing the image. This may take a few minutes...")
+
+            result = None
+            with st.spinner("Waiting for the processed result..."):
+                while result is None:
+                    time.sleep(10)  # Wait 10 seconds before checking again
+                    result = check_for_result()
+
+            if result:
+                st.success("Processing complete! Displaying the result below:")
+                st.write(result)  # Display the CSV content or processed data
+            else:
+                st.error("Could not retrieve the processed result.")
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.text}")
