@@ -24,26 +24,21 @@ required_parameters = [
 ]
 
 # Function to fetch processed result from GitHub
-def fetch_processed_result(retries=20, delay=10):
+def fetch_processed_result():
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
+    response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
+    
+    if response.status_code == 200:
+        file_info = response.json()
+        content = base64.b64decode(file_info["content"]).decode("utf-8")
+        return content
+    else:
+        return None
 
-    for attempt in range(retries):
-        response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
-        if response.status_code == 200:
-            file_info = response.json()
-            content = base64.b64decode(file_info["content"]).decode("utf-8")
-            return content
-        else:
-            st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
-            time.sleep(delay)
-
-    st.error("Processed result could not be fetched after multiple retries.")
-    return None
-
-# Function to display the selected parameters in a two-column table
+# Function to display the selected parameters in a table
 def display_selected_parameters(csv_data):
     from io import StringIO
     data = StringIO(csv_data)
@@ -73,13 +68,14 @@ uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 if uploaded_file is not None:
     st.write("Uploading and processing your file. Please wait...")
 
-    # Since the GitHub workflow is triggered, wait for the file to be available
-    with st.spinner("Processing... This may take a few seconds..."):
-        # Fetch the processed CSV result
-        result = fetch_processed_result()
+    # Introduce a delay to wait for the GitHub action to finish (adjust based on average time)
+    time.sleep(30)  # Wait for 30 seconds (adjust this as needed)
 
-        if result:
-            st.success("Processing complete! Displaying the result below:")
-            display_selected_parameters(result)
-        else:
-            st.error("Could not retrieve the processed result.")
+    # Fetch the processed CSV result from GitHub
+    result = fetch_processed_result()
+
+    if result:
+        st.success("Processing complete! Displaying the result below:")
+        display_selected_parameters(result)
+    else:
+        st.error("Could not retrieve the processed result.")
