@@ -2,7 +2,11 @@ import os
 import shutil
 
 def delete_and_recreate_process_directory():
-    process_dir = os.path.join(os.getcwd(), 'process')  # Corrected to the root 'process' directory
+    # Navigate to the root directory
+    root_dir = os.path.dirname(os.path.abspath(__file__))  # Get the root directory of the script
+    
+    # Set the correct 'process' directory under the root
+    process_dir = os.path.join(root_dir, 'process')
     
     # Delete the 'process' directory if it exists
     if os.path.exists(process_dir):
