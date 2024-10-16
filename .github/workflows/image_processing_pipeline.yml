@@ -10,9 +10,7 @@ on:
 jobs:
   process-images:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        file_batch: [batch1, batch2, batch3]  # Example for parallel processing
+
     permissions:
       contents: write  # Allow pushing changes to the repository
 
@@ -23,7 +21,7 @@ jobs:
       with:
         persist-credentials: true  # Ensure Git credentials are available
 
-    # Step 2: Set up caching for Python dependencies
+    # Step 2: Cache pip dependencies
     - name: Cache pip dependencies
       uses: actions/cache@v3
       with:
@@ -45,31 +43,33 @@ jobs:
 
     # Step 5: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: |
-        mkdir -p decryption/input
-        echo "Input directory exists or created."
+      run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
     # Step 6: Debugging - List files in input directory to confirm PNG existence
     - name: Check input directory for PNGs
       run: |
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
-      continue-on-error: true  # If this step fails, it won’t stop the workflow
 
-    # Step 7: Run script1.py, script2.py, and script3.py in parallel
-    - name: Run script1.py for batch1
-      if: matrix.file_batch == 'batch1'
+    # Step 7: Run script1.py
+    - name: Run script1.py
       run: python scripts/script1.py
 
-    - name: Run script2.py for batch2
-      if: matrix.file_batch == 'batch2'
-      run: python scripts/script2.py
+    # Step 8: Ensure the process directory exists and list files
+    - name: List files after script1.py
+      run: ls -la process/
 
-    - name: Run script3.py for batch3
-      if: matrix.file_batch == 'batch3'
+    # Step 9: Run script2.py (ensure input directory exists)
+    - name: Run script2.py
+      run: |
+        mkdir -p decryption/input  # Ensure input directory exists
+        python scripts/script2.py
+
+    # Step 10: Run script3.py
+    - name: Run script3.py
       run: python scripts/script3.py
 
-    # Step 8: Debugging - Print generated files and their contents
+    # Step 11: Debugging - Print generated files and their contents
     - name: List files and display contents in process directory before upload
       run: |
         ls -la process/
@@ -77,9 +77,8 @@ jobs:
         cat process/decrypted_data_with_binary.csv
         echo "Contents of merged_data_with_metadata.csv:"
         cat process/merged_data_with_metadata.csv
-      continue-on-error: true  # Won’t stop the workflow if files aren’t found
 
-    # Step 9: Verify if the output file exists
+    # Step 12: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
@@ -89,20 +88,30 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 10: Commit and push processed result to the repository
-    - name: Commit and push processed result
-      if: matrix.file_batch == 'batch1'  # Only commit once
+    # Step 13: Stage and commit if changes exist (including deletions)
+    - name: Stage and commit if changes exist
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add process/merged_data_with_metadata.csv
-        git commit -m "Add processed result for ${{ github.sha }}"
-        git push
+        git add -A process/ || true  # Stage all changes in process/, including deletions
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+        else
+          git commit -m "Add processed result"
+          git push
+        fi
 
-    # Step 11: Run script4.py to delete PNG files
+    # Step 14: Upload the artifact with a unique name including commit SHA
+    - name: Upload processed result as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: processed-results-${{ github.sha }}
+        path: process/merged_data_with_metadata.csv
+
+    # Step 15: Run script4.py to delete PNG files
     - name: Delete Uploaded PNGs
       run: python scripts/script4.py
 
-    # Step 12: Clean up process directory
+    # Step 16: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
