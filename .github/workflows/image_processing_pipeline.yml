@@ -32,37 +32,36 @@ jobs:
 
     # Step 4: Create the process directory (if it doesn't exist)
     - name: Create process directory
-      run: mkdir -p decryption/process/
+      run: mkdir -p process/
 
     # Step 5: Run script1.py
     - name: Run script1.py
       run: python scripts/script1.py
 
     # Step 6: Run script2.py
-    - name: Run script2.py
+      name: Run script2.py
       run: python scripts/script2.py
 
     # Step 7: Run script3.py
     - name: Run script3.py
       run: python scripts/script3.py
 
-# Step 8: Verify if the output file exists
-- name: Verify output file exists
-  run: |
-    if [ ! -f "decryption/process/merged_data_with_metadata.csv" ]; then
-      echo "Output file not found!"
-      exit 1
-    else
-      echo "Output file found!"
-    fi
-
+    # Step 8: Verify if the output file exists
+    - name: Verify output file exists
+      run: |
+        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
+          echo "Output file not found!"
+          exit 1
+        else
+          echo "Output file found!"
+        fi
 
     # Step 9: Commit the final processed output to the repository
     - name: Commit final output
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add decryption/process/merged_data_with_metadata.csv
+        git add process/merged_data_with_metadata.csv
         git commit -m "Add processed result"
         git push
 
@@ -79,4 +78,4 @@ jobs:
     # Step 11: Clean up
     - name: Clean up
       run: |
-        rm -rf decryption/process/*
+        rm -rf process/*
