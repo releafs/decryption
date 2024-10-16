@@ -89,7 +89,7 @@ def display_selected_parameters(csv_data):
     st.table(parameters_df)
 
 # Streamlit File Uploader
-st.title("Image Uploader and Processing")
+st.title("Scan your Releafs Token")
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
