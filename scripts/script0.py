@@ -91,6 +91,15 @@ def display_selected_parameters(csv_data):
 # Streamlit File Uploader
 st.title("Scan your Releafs Token")
 
+# Add the instruction text below the title
+st.markdown(
+    """
+    Each token is generated to create climate action impact in the real world. 
+    Track the token and find out what impact will be generated from your token.
+    Powered by [Releafs](https://www.releafs.co)
+    """
+)
+
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
