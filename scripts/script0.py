@@ -60,7 +60,7 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Function to get the latest workflow run ID
+# Function to get the latest workflow run ID and status
 def get_latest_workflow_run_id():
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -69,13 +69,48 @@ def get_latest_workflow_run_id():
 
     WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
     response = requests.get(WORKFLOW_RUNS_URL, headers=headers)
+    
     if response.status_code == 200:
         workflow_runs = response.json()["workflow_runs"]
         if workflow_runs:
-            return workflow_runs[0]["id"]  # Return the latest run ID
+            run_id = workflow_runs[0]["id"]
+            status = workflow_runs[0]["status"]
+            return run_id, status  # Return the run ID and status
     else:
         st.error(f"Failed to fetch workflow runs: {response.text}")
-        return None
+        return None, None
+
+# Function to poll workflow completion
+def wait_for_workflow_completion(run_id, retries=10, delay=10):
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    WORKFLOW_RUN_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}"
+    
+    for attempt in range(retries):
+        response = requests.get(WORKFLOW_RUN_URL, headers=headers)
+        if response.status_code == 200:
+            run_data = response.json()
+            status = run_data["status"]
+            if status == "completed":
+                conclusion = run_data["conclusion"]
+                if conclusion == "success":
+                    st.success("Workflow completed successfully.")
+                    return True
+                else:
+                    st.error("Workflow completed with failure.")
+                    return False
+            else:
+                st.write(f"Workflow status: {status}. Retrying in {delay} seconds...")
+                time.sleep(delay)
+        else:
+            st.error(f"Failed to fetch workflow status: {response.text}")
+            return False
+
+    st.error("Workflow did not complete in time.")
+    return False
 
 # Function to fetch the artifact
 def fetch_artifact(run_id, retries=10, delay=10):
@@ -154,18 +189,27 @@ if uploaded_file is not None:
     if response.status_code == 201 or response.status_code == 200:
         st.write("File uploaded successfully! Processing...")
 
-        run_id = get_latest_workflow_run_id()
+        run_id, status = get_latest_workflow_run_id()
 
-        if run_id:
-            result = None
-            with st.spinner("Waiting for the processed artifact..."):
-                result = fetch_artifact(run_id)
-
-            if result:
-                st.success("Processing complete! Displaying the result below:")
-                display_selected_parameters(result)
+        if run_id and status:
+            if status != "completed":
+                st.write("Waiting for the workflow to complete...")
+                completed = wait_for_workflow_completion(run_id)
             else:
-                st.error("Could not retrieve the processed result.")
+                completed = True
+
+            if completed:
+                result = None
+                with st.spinner("Waiting for the processed artifact..."):
+                    result = fetch_artifact(run_id)
+
+                if result:
+                    st.success("Processing complete! Displaying the result below:")
+                    display_selected_parameters(result)
+                else:
+                    st.error("Could not retrieve the processed result.")
+            else:
+                st.error("Workflow did not complete successfully.")
         else:
             st.error("Failed to retrieve workflow run ID.")
     else:
