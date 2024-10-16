@@ -52,49 +52,43 @@ jobs:
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
-    # Step 7: Run the main processing scripts
+    # Step 7: Run the main processing scripts (No delay)
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Check for output file and handle gracefully if missing
-    - name: Verify if the output file exists
-      id: check-output
+    # Step 8: Verify if the output file exists
+    - name: Verify output file exists
       run: |
-        if [ -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Output file found."
-          echo "file_exists=true" >> $GITHUB_ENV
+        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
+          echo "Output file not found!"
+          exit 1
         else
-          echo "Output file not found."
-          echo "file_exists=false" >> $GITHUB_ENV
-          exit 0
+          echo "Output file found!"
         fi
 
-    # Step 9: Pull, commit, and push processed result
-    - name: Pull, commit, and push processed result
-      if: env.file_exists == 'true'
+    # Step 9: Stash local changes, pull from remote, apply stash, and commit processed results
+    - name: Stash, pull, and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add process/merged_data_with_metadata.csv
         git stash  # Stash any local changes to avoid conflicts
-        git pull origin main --rebase --autostash || true  # Pull the latest changes from the remote repository with autostash
+        git pull origin main --rebase || true  # Pull the latest changes from the remote repository
         git stash pop || true  # Apply the stashed changes
         git add process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 10: Upload the artifact with a unique name including commit SHA (if the file exists)
+    # Step 10: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
-      if: env.file_exists == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
 
-    # Step 11: Clean up process directory
+    # Step 11: Clean up process directory (Optional if needed)
     - name: Clean up process directory
       run: rm -rf process/*
 
