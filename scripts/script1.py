@@ -3,13 +3,13 @@ import csv
 from PIL import Image
 import numpy as np
 
-# Get the directory of the current script
+# Get the directory of the current script and correct paths relative to the root
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
+UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'decryption', 'input')  # Ensure the upload directory is correct
+OUTPUT_FOLDER = os.path.join(ROOT_DIR, 'process')
+DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
 
-# Corrected directory paths
-UPLOAD_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, 'decryption', 'input'))    # Where PNGs are uploaded (ROOT_DIR, 'decryption', 'input')
-OUTPUT_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'process'))  # Where the output CSV will be saved
-DATA_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'data')) 
 
 # Ensure upload and output directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
