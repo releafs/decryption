@@ -69,12 +69,12 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Remove conflicting files, stash local changes, pull from remote, apply stash, and commit processed results
+    # Step 9: Stash local changes, pull from remote, apply stash, and commit processed results
     - name: Stash, pull, and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git rm -f process/merged_data_with_metadata.csv || true  # Ensure no conflicting file remains
+        git rm --cached process/merged_data_with_metadata.csv || true  # Remove cached file to avoid conflicts
         git stash  # Stash any local changes to avoid conflicts
         git pull origin main --rebase || true  # Pull the latest changes from the remote repository
         git stash pop || true  # Apply the stashed changes
