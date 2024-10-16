@@ -60,26 +60,25 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Function to fetch the processed result after a delay
-def wait_for_process_completion(delay=60):
-    # Sleep for 60 seconds to wait for the GitHub Actions process to complete
-    st.write(f"Waiting for {delay} seconds for the process to complete...")
-    time.sleep(delay)
-
-    # Now, try fetching the processed result
+# Function to wait for the workflow completion by polling for the presence of the processed result
+def wait_for_process_completion(retries=20, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
-    response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
-    if response.status_code == 200:
-        file_info = response.json()
-        content = base64.b64decode(file_info["content"]).decode("utf-8")
-        return content
-    else:
-        st.error("Processed result could not be fetched after waiting.")
-        return None
+    for attempt in range(retries):
+        response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
+        if response.status_code == 200:
+            file_info = response.json()
+            content = base64.b64decode(file_info["content"]).decode("utf-8")
+            return content
+        else:
+            st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
+            time.sleep(delay)
+
+    st.error("Processed result could not be fetched after multiple retries.")
+    return None
 
 # Function to display the selected parameters in a two-column table
 def display_selected_parameters(csv_data):
@@ -120,10 +119,15 @@ if uploaded_file is not None:
     response = upload_file_to_github(file_name, file_content, sha)
 
     if response.status_code in [201, 200]:
-        st.write("File uploaded successfully! Waiting for 1 minute...")
+        st.write("File uploaded successfully! Waiting for processing to complete...")
 
-        # Wait for 1 minute and then check for the processed CSV result
-        result = wait_for_process_completion()
+        # Wait for 1 minute before starting to check for the result
+        time.sleep(60)  # Adjust this delay based on average workflow completion time
+
+        # Wait for the workflow to complete and fetch the result directly from GitHub
+        result = None
+        with st.spinner("Waiting for the processed result..."):
+            result = wait_for_process_completion()
 
         if result:
             st.success("Processing complete! Displaying the result below:")
