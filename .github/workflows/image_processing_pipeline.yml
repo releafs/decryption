@@ -70,6 +70,7 @@ jobs:
           exit 1
         else
           echo "Output file found!"
+        fi  # Closing the if statement
 
     # Step 11: Stage and commit if changes exist (including deletions)
     - name: Stage and commit if changes exist
