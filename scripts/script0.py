@@ -2,17 +2,28 @@ import os
 import streamlit as st
 import requests
 import base64
+import time
+import pandas as pd
 
 # Define GitHub repository details
-GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
-GITHUB_BRANCH = "main"  # Replace with your branch name
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
+GITHUB_REPO = "releafs/decryption"
+GITHUB_BRANCH = "main"
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
-# Define the input directory in your GitHub repository
+# Define the input directory and process result paths in your GitHub repository
 input_directory_in_github = "decryption/input/"
+process_result_path = "decryption/process/merged_data_with_metadata.csv"
 
-# GitHub API URL to upload files and check for existing files
+# GitHub API URL to upload files and fetch results
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+GITHUB_PROCESS_RESULT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{process_result_path}"
+
+# List of parameters to extract from the CSV
+required_parameters = [
+    "Latitude", "Longitude", "Type of Token", "description", "external_url",
+    "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
+    "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
+]
 
 # Function to check if the file exists in the GitHub repository
 def check_if_file_exists(file_name):
@@ -23,13 +34,13 @@ def check_if_file_exists(file_name):
     })
 
     if response.status_code == 200:
-        return response.json().get('sha')  # Return the SHA of the existing file if found
+        return response.json().get('sha')  # Return the SHA of the existing file
     return None
 
 # Function to upload the file to GitHub
 def upload_file_to_github(file_name, file_content, sha=None):
-    encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
-    commit_message = f"Upload {file_name}"  # Commit message
+    encoded_content = base64.b64encode(file_content).decode("utf-8")
+    commit_message = f"Upload {file_name}"
 
     data = {
         "message": commit_message,
@@ -37,13 +48,11 @@ def upload_file_to_github(file_name, file_content, sha=None):
         "branch": GITHUB_BRANCH
     }
 
-    # If the file already exists, include the SHA to update it
     if sha:
         data["sha"] = sha
 
-    url = f"{GITHUB_API_URL}{file_name}"  # GitHub API URL for the file
+    url = f"{GITHUB_API_URL}{file_name}"
 
-    # Send the request to upload the file to GitHub
     response = requests.put(url, json=data, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -51,31 +60,85 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Streamlit File Uploaders
-st.title("Upload a PNG File to GitHub")
+def wait_for_process_completion(retries=30, initial_delay=60, subsequent_delay=30):
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
 
-# File uploader widget in Streamlit
-uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+    # Initial wait for 1 minute before the first attempt
+    st.write(f"Waiting for {initial_delay} seconds before the first attempt...")
+    time.sleep(initial_delay)
+
+    for attempt in range(retries):
+        response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
+        if response.status_code == 200:
+            file_info = response.json()
+            content = base64.b64decode(file_info["content"]).decode("utf-8")
+            return content
+        else:
+            st.write(f"Processed result not found. Retrying {attempt+1}/{retries} after {subsequent_delay} seconds...")
+
+        # Wait for 30 seconds before the next attempt
+        time.sleep(subsequent_delay)
+
+    st.error("Processed result could not be fetched after multiple retries.")
+    return None
+
+
+# Function to display the selected parameters in a two-column table
+def display_selected_parameters(csv_data):
+    from io import StringIO
+    data = StringIO(csv_data)
+    df = pd.read_csv(data)
+
+    filtered_data = df[required_parameters].iloc[0]
+
+    parameters_df = pd.DataFrame({
+        "Parameters": filtered_data.index,
+        "Values": filtered_data.values
+    })
+
+    st.table(parameters_df)
+
+# Streamlit File Uploader
+st.title("Scan your Releafs Token")
+
+st.markdown(
+    """
+Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
+Powered by [Releafs](https://www.releafs.co)
+    """
+)
+
+uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
-    # Display the file name and size
-    st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-    
-    file_name = uploaded_file.name
-    file_content = uploaded_file.getvalue()  # Get the content of the file
+    st.write("Uploading and processing your file. Please wait...")
 
-    # Check if the file already exists in the GitHub repository
+    file_name = uploaded_file.name
+    file_content = uploaded_file.getvalue()
+
     sha = check_if_file_exists(file_name)
 
-    if sha:
-        st.warning(f"The file {file_name} already exists in the repository. It will be updated.")
-    else:
-        st.info(f"The file {file_name} does not exist in the repository. It will be uploaded.")
-
-    # Upload the file to GitHub (update or create)
+    # Upload the file to GitHub
     response = upload_file_to_github(file_name, file_content, sha)
 
     if response.status_code in [201, 200]:
-        st.success(f"File {file_name} uploaded/updated successfully!")
+        st.write("File uploaded successfully! Waiting for processing to complete...")
+
+        # Wait for 1 minute before starting to check for the result
+        time.sleep(60)  # Adjust this delay based on average workflow completion time
+
+        # Wait for the workflow to complete and fetch the result directly from GitHub
+        result = None
+        with st.spinner("Waiting for the processed result..."):
+            result = wait_for_process_completion()
+
+        if result:
+            st.success("Processing complete! Displaying the result below:")
+            display_selected_parameters(result)
+        else:
+            st.error("Could not retrieve the processed result.")
     else:
-        st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+        st.error(f"Failed to upload {file_name}. Response: {response.text}")
