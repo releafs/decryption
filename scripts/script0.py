@@ -60,8 +60,7 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Function to wait for the workflow completion by polling for the presence of the processed result
-def wait_for_process_completion(retries=20, delay=10):
+ef wait_for_process_completion(retries=20, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
@@ -79,6 +78,7 @@ def wait_for_process_completion(retries=20, delay=10):
 
     st.error("Processed result could not be fetched after multiple retries.")
     return None
+
 
 # Function to display the selected parameters in a two-column table
 def display_selected_parameters(csv_data):
