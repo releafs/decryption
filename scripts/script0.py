@@ -1,5 +1,3 @@
-Can we make our script fetch to the artifact instead of the CSV?
-
 import os
 import streamlit as st
 import requests
