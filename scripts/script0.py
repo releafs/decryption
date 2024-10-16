@@ -122,7 +122,7 @@ if uploaded_file is not None:
         st.write("File uploaded successfully! Processing...")
 
         # Wait for a few seconds before starting to check for the result
-        time.sleep(30)  # Adjust this delay based on average workflow completion time
+        time.sleep(60)  # Adjust this delay based on average workflow completion time
 
         # Wait for the workflow to complete and fetch the result directly from GitHub
         result = None
