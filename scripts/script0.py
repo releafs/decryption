@@ -77,12 +77,12 @@ def display_selected_parameters(csv_data):
     df = pd.read_csv(data)
 
     # Filter the DataFrame to only include the required parameters
-    filtered_df = df[required_parameters].transpose()
+    filtered_data = df[required_parameters].iloc[0]  # Take the first row of the filtered columns
 
     # Create a two-column table with 'Parameters' and 'Values'
     parameters_df = pd.DataFrame({
-        "Parameters": filtered_df.index,
-        "Values": filtered_df.iloc[:, 0]  # Assuming you want the first row's values
+        "Parameters": filtered_data.index,  # Parameter names
+        "Values": filtered_data.values  # Corresponding values
     })
 
     # Display the DataFrame as a table in Streamlit
