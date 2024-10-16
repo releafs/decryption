@@ -7,7 +7,7 @@ import pandas as pd
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
-GITHUB_BRANCH = "main"  # Change if you're using a different branch
+GITHUB_BRANCH = "main"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 # Define the input directory and process result paths in your GitHub repository
@@ -120,6 +120,9 @@ if uploaded_file is not None:
 
     if response.status_code in [201, 200]:
         st.write("File uploaded successfully! Processing...")
+
+        # Wait for a few seconds before starting to check for the result
+        time.sleep(30)  # Adjust this delay based on average workflow completion time
 
         # Wait for the workflow to complete and fetch the result directly from GitHub
         result = None
