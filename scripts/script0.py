@@ -5,7 +5,7 @@ import base64
 import time
 import zipfile
 import io
-import pandas as pd  # Ensure pandas is imported for handling tables
+import pandas as pd
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
@@ -39,39 +39,40 @@ def get_latest_workflow_run_id():
         st.error(f"Failed to fetch workflow runs: {response.text}")
         return None
 
-# Function to fetch the artifact
-def fetch_artifact(run_id):
+# Function to fetch the latest artifact with retry mechanism
+def fetch_artifact(run_id, retries=5, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
-    # Get the list of artifacts for the run
-    response = requests.get(ARTIFACTS_URL.format(run_id=run_id), headers=headers)
-    if response.status_code == 200:
-        artifacts = response.json()["artifacts"]
-        if not artifacts:
-            st.write("No artifacts found.")
+    # Retry fetching the artifact if it’s not available yet
+    for _ in range(retries):
+        response = requests.get(ARTIFACTS_URL.format(run_id=run_id), headers=headers)
+        if response.status_code == 200:
+            artifacts = response.json()["artifacts"]
+            if not artifacts:
+                st.write("No artifacts found. Retrying...")
+                time.sleep(delay)
+            else:
+                for artifact in artifacts:
+                    if artifact["name"] == "processed-results":
+                        download_url = artifact["archive_download_url"]
+                        artifact_response = requests.get(download_url, headers=headers)
+                        if artifact_response.status_code == 200:
+                            with zipfile.ZipFile(io.BytesIO(artifact_response.content)) as z:
+                                for file in z.namelist():
+                                    if file.endswith("merged_data_with_metadata.csv"):
+                                        return z.read(file).decode("utf-8")
+        else:
+            st.error(f"Failed to fetch artifact: {response.text}")
             return None
-        
-        # Find the artifact by name (assumed "processed-results")
-        for artifact in artifacts:
-            if artifact["name"] == "processed-results":
-                download_url = artifact["archive_download_url"]
-                response = requests.get(download_url, headers=headers)
-                if response.status_code == 200:
-                    with zipfile.ZipFile(io.BytesIO(response.content)) as z:
-                        for file in z.namelist():
-                            if file.endswith("merged_data_with_metadata.csv"):
-                                return z.read(file).decode("utf-8")
-                else:
-                    st.error(f"Failed to download artifact: {response.text}")
-                    return None
+
+    st.error("Artifact could not be fetched after multiple retries.")
     return None
 
 # Function to display the selected parameters in a two-column table
 def display_selected_parameters(csv_data):
-    # Convert the CSV string into a Pandas DataFrame
     from io import StringIO
     data = StringIO(csv_data)
     df = pd.read_csv(data)
@@ -81,8 +82,8 @@ def display_selected_parameters(csv_data):
 
     # Create a two-column table with 'Parameters' and 'Values'
     parameters_df = pd.DataFrame({
-        "Parameters": filtered_data.index,  # Parameter names
-        "Values": filtered_data.values  # Corresponding values
+        "Parameters": filtered_data.index,
+        "Values": filtered_data.values
     })
 
     # Display the DataFrame as a table in Streamlit
@@ -94,8 +95,8 @@ st.title("Scan your Releafs Token")
 # Add the instruction text below the title
 st.markdown(
     """
-Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible
-    Powered by [Releafs](https://www.releafs.co)
+Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
+Powered by [Releafs](https://www.releafs.co)
     """
 )
 
@@ -103,7 +104,7 @@ uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
     # Create two columns: left for the image, right for the table
-    col1, col2 = st.columns([1, 2])  # Adjust proportions, e.g., 1:2
+    col1, col2 = st.columns([1, 2])
 
     # Display the image in the left column
     with col1:
@@ -121,13 +122,10 @@ if uploaded_file is not None:
     if run_id:
         result = None
         with st.spinner("Waiting for the processed artifact..."):
-            while result is None:
-                time.sleep(10)
-                result = fetch_artifact(run_id)
+            result = fetch_artifact(run_id)
 
         if result:
             st.success("Processing complete! Displaying the result below:")
-            # Display the selected parameters in the right column
             with col2:
                 display_selected_parameters(result)
         else:
