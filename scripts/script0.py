@@ -14,6 +14,7 @@ GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 # Define the input directory in your GitHub repository
 input_directory_in_github = "decryption/input/"
+process_directory = "decryption/process/"
 
 # GitHub API URL to upload files
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
@@ -24,6 +25,18 @@ required_parameters = [
     "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
     "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
 ]
+
+# Clean up existing CSV files in the process directory before starting
+def clean_process_directory():
+    if os.path.exists(process_directory):
+        for file_name in os.listdir(process_directory):
+            if file_name.endswith(".csv"):
+                file_path = os.path.join(process_directory, file_name)
+                os.remove(file_path)
+                st.write(f"Deleted old CSV: {file_name}")
+    else:
+        os.makedirs(process_directory)
+        st.write(f"Created process directory: {process_directory}")
 
 # Function to check if the file exists in the GitHub repository
 def check_if_file_exists(file_name):
@@ -149,6 +162,9 @@ Powered by [Releafs](https://www.releafs.co)
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
+    # Clean up old CSV files before processing
+    clean_process_directory()
+
     # Create two columns: left for the image, right for the table
     col1, col2 = st.columns([1, 2])
 
