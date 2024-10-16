@@ -1,11 +1,16 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-from PIL import Image
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+import time
 import io
-import base64
-import zlib
-import json
+
+# AWS S3 Configuration
+AWS_ACCESS_KEY_ID = st.secrets["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY = st.secrets["AWS_SECRET_ACCESS_KEY"]
+AWS_S3_BUCKET = st.secrets["AWS_S3_BUCKET"]
+AWS_S3_REGION = 'us-east-1'  # Replace with your region
+S3_FILE_KEY = 'merged_data_with_metadata.csv'  # The key of the file in S3
 
 # List of parameters to extract from the CSV
 required_parameters = [
@@ -14,42 +19,31 @@ required_parameters = [
     "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
 ]
 
-# Function to process the uploaded image
-def process_image(file_content):
-    # Step 1: Read the image and extract data (simulate script1.py)
-    image = Image.open(io.BytesIO(file_content))
-    # Assuming the data is stored in the image metadata (replace with actual logic)
-    if 'Description' in image.info:
-        binary_data = image.info['Description']
-    else:
-        st.error("No embedded data found in the image.")
-        return None
-
-    # Step 2: Decompress and decode the data (simulate script2.py)
+# Function to fetch the processed result from S3
+def fetch_processed_result():
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_S3_REGION
+    )
     try:
-        compressed_data = base64.b64decode(binary_data)
-        decompressed_data = zlib.decompress(compressed_data).decode('utf-8')
-        data_dict = json.loads(decompressed_data)
-    except Exception as e:
-        st.error(f"Error decompressing data: {e}")
-        return None
-
-    # Step 3: Merge data with metadata (simulate script3.py)
-    # Assuming you have a metadata CSV file to merge with
-    try:
-        metadata_df = pd.read_csv('metadata.csv')  # Ensure this file is accessible
-        data_df = pd.DataFrame([data_dict])
-        merged_df = pd.merge(data_df, metadata_df, on='some_common_key')  # Replace with actual key
-    except Exception as e:
-        st.error(f"Error merging data: {e}")
-        return None
-
-    return merged_df
+        obj = s3.get_object(Bucket=AWS_S3_BUCKET, Key=S3_FILE_KEY)
+        data = obj['Body'].read()
+        return data
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchKey':
+            return None
+        else:
+            st.error(f"Error fetching processed result: {e}")
+            return None
 
 # Function to display the selected parameters in a table
-def display_selected_parameters(df):
-    filtered_data = df[required_parameters].iloc[0]
+def display_selected_parameters(csv_data):
+    df = pd.read_csv(io.BytesIO(csv_data))
 
+    # Displaying filtered data
+    filtered_data = df[required_parameters].iloc[0]
     parameters_df = pd.DataFrame({
         "Parameters": filtered_data.index,
         "Values": filtered_data.values
@@ -62,7 +56,7 @@ st.title("Scan your Releafs Token")
 
 st.markdown(
     """
-    Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
+    Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we're making a sustainable future possible.
     Powered by [Releafs](https://www.releafs.co)
     """
 )
@@ -70,16 +64,60 @@ st.markdown(
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
-    st.write("Processing your file. Please wait...")
+    st.write("Uploading and processing your file. Please wait...")
 
+    file_name = uploaded_file.name
     file_content = uploaded_file.getvalue()
 
-    # Process the image
-    with st.spinner("Processing..."):
-        result_df = process_image(file_content)
+    # Upload the file to GitHub (this will trigger the workflow)
+    def upload_file_to_github(file_name, file_content):
+        import base64
+        import requests
 
-    if result_df is not None:
-        st.success("Processing complete! Displaying the result below:")
-        display_selected_parameters(result_df)
+        GITHUB_REPO = "releafs/decryption"
+        GITHUB_BRANCH = "main"
+        GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+
+        encoded_content = base64.b64encode(file_content).decode("utf-8")
+        commit_message = f"Upload {file_name}"
+
+        data = {
+            "message": commit_message,
+            "content": encoded_content,
+            "branch": GITHUB_BRANCH
+        }
+
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/decryption/input/{file_name}"
+
+        response = requests.put(url, json=data, headers={
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        })
+
+        return response
+
+    response = upload_file_to_github(file_name, file_content)
+
+    if response.status_code in [201, 200]:
+        st.write("File uploaded successfully! Processing...")
+
+        # Wait for the workflow to complete and the file to be available in S3
+        result = None
+        max_retries = 20
+        delay = 10  # seconds
+
+        for attempt in range(max_retries):
+            result = fetch_processed_result()
+            if result:
+                break
+            else:
+                st.write(f"Processed result not found. Retrying {attempt + 1}/{max_retries}...")
+                time.sleep(delay)
+
+        if result:
+            st.success("Processing complete! Displaying the result below:")
+            display_selected_parameters(result)
+        else:
+            st.error("Could not retrieve the processed result.")
     else:
-        st.error("Processing failed. Please check the image and try again.")
+        st.error(f"Failed to upload {file_name}. Response: {response.text}")
