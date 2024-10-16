@@ -1,7 +1,3 @@
-I want to ask you to make sure the HTML result is embedded within the streamlit
-
-see the streamlit or script0.py
-
 import os
 import streamlit as st
 import requests
