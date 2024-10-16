@@ -42,11 +42,9 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 5: Delete all files from decryption/input/
-    - name: Delete all files from decryption/input/
-      run: |
-        echo "Deleting all files from decryption/input/ directory"
-        rm -rf decryption/input/*
+    # Step 5: Run script4.py to delete all files and the input directory
+    - name: Delete input files and directory
+      run: python scripts/script4.py  # This runs your updated script to delete all files and the input directory
 
     # Step 6: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
