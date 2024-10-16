@@ -94,8 +94,7 @@ st.title("Scan your Releafs Token")
 # Add the instruction text below the title
 st.markdown(
     """
-    Each token is generated to create climate action impact in the real world. 
-    Track the token and find out what impact will be generated from your token.
+Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible
     Powered by [Releafs](https://www.releafs.co)
     """
 )
