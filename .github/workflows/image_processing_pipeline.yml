@@ -52,25 +52,31 @@ jobs:
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
-    # Step 7: Run the main processing scripts with a delay to prevent race conditions
+    # Step 7: Run the main processing scripts
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
+
+    # Step 8: Introduce a sleep delay before checking the result
+    # This allows the GitHub workflow to ensure the file is processed properly before continuing
+    - name: Wait before verifying output
+      run: |
+        echo "Waiting for 60 seconds to allow the processing to complete..."
         sleep 60  # Add a 1-minute delay to ensure files are created before fetching
 
-    # Step 8: Verify if the output file exists
+    # Step 9: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Output file not found!"
+          echo "Output file not found! Exiting..."
           exit 1
         else
           echo "Output file found!"
         fi
 
-    # Step 9: Commit and push processed results if changes exist
+    # Step 10: Commit and push processed results if changes exist
     - name: Commit and push processed result
       run: |
         git config --global user.email "action@github.com"
@@ -79,13 +85,13 @@ jobs:
         git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 10: Upload the artifact with a unique name including commit SHA
+    # Step 11: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
 
-    # Step 11: Clean up process directory
+    # Step 12: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
