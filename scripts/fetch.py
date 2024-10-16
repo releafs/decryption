@@ -16,7 +16,7 @@ process_result_path = "decryption/process/merged_data_with_metadata.csv"
 GITHUB_PROCESS_RESULT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{process_result_path}"
 
 # Function to fetch processed result
-def wait_for_process_completion(retries=100, initial_delay=100, subsequent_delay=100):
+def wait_for_process_completion(retries=5, initial_delay=0, subsequent_delay=0):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
