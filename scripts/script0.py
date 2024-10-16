@@ -54,28 +54,37 @@ def upload_file_to_github(file_name, file_content, sha=None):
 # Streamlit File Uploader
 st.title("Upload a PNG File to GitHub")
 
-# File uploader widget in Streamlit
-uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+# Create two columns: left for the image, right for the file upload and info
+col1, col2 = st.columns([1, 2])
 
+# File uploader widget in the right column
+with col2:
+    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+
+    if uploaded_file is not None:
+        # Display the file name and size
+        st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
+        
+        file_name = uploaded_file.name
+        file_content = uploaded_file.getvalue()  # Get the content of the file
+
+        # Check if the file already exists in the GitHub repository
+        sha = check_if_file_exists(file_name)
+
+        if sha:
+            st.warning(f"The file {file_name} already exists in the repository. It will be updated.")
+        else:
+            st.info(f"The file {file_name} does not exist in the repository. It will be uploaded.")
+
+        # Upload the file to GitHub (update or create)
+        response = upload_file_to_github(file_name, file_content, sha)
+
+        if response.status_code in [201, 200]:
+            st.success(f"File {file_name} uploaded/updated successfully!")
+        else:
+            st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+
+# Display the uploaded image on the left column
 if uploaded_file is not None:
-    # Display the file name and size
-    st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-    
-    file_name = uploaded_file.name
-    file_content = uploaded_file.getvalue()  # Get the content of the file
-
-    # Check if the file already exists in the GitHub repository
-    sha = check_if_file_exists(file_name)
-
-    if sha:
-        st.warning(f"The file {file_name} already exists in the repository. It will be updated.")
-    else:
-        st.info(f"The file {file_name} does not exist in the repository. It will be uploaded.")
-
-    # Upload the file to GitHub (update or create)
-    response = upload_file_to_github(file_name, file_content, sha)
-
-    if response.status_code in [201, 200]:
-        st.success(f"File {file_name} uploaded/updated successfully!")
-    else:
-        st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+    with col1:
+        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
