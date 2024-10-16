@@ -10,11 +10,10 @@ GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
 GITHUB_BRANCH = "main"  # Replace with your branch name
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
 
-# Define the input directory in your GitHub repository
+# Define directories and file paths
 input_directory_in_github = "decryption/input/"
 csv_file_path = 'process/merged_data_with_metadata.csv'
 
-# Function to delete all files in the input directory
 # Function to silently delete all files in the input directory without showing messages
 def clear_input_directory():
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
@@ -23,9 +22,9 @@ def clear_input_directory():
         "Accept": "application/vnd.github.v3+json"
     })
 
-    # If the directory does not exist or is empty, skip without any message
+    # If the directory does not exist or is empty, skip silently
     if response.status_code == 404:
-        return  # Silently skip
+        return
 
     if response.status_code == 200:
         files = response.json()
@@ -37,30 +36,9 @@ def clear_input_directory():
     else:
         return  # Silently skip in case of any error
 
-
-# Function to create a placeholder file if the directory does not exist
-def create_placeholder_file():
-    file_name = ".gitkeep"  # Placeholder file
-    content = base64.b64encode(b'').decode('utf-8')  # Empty file content
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
-    data = {
-        "message": "Create input directory with placeholder file",
-        "content": content,
-        "branch": GITHUB_BRANCH
-    }
-    response = requests.put(url, json=data, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
-    if response.status_code in [201, 200]:
-        st.write(f"Created {file_name} in {input_directory_in_github}.")
-    else:
-        st.error(f"Failed to create directory. Response: {response.status_code}, {response.text}")
-
 # Function to delete a file in the GitHub repository
 def delete_file_in_github(file_name, sha):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
-    url = f"{GITHUB_API_URL}{file_name}"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     data = {
         "message": f"Delete {file_name}",
         "sha": sha,
@@ -74,9 +52,9 @@ def delete_file_in_github(file_name, sha):
 
 # Function to upload the file to GitHub
 def upload_file_to_github(file_name, file_content, sha=None):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
-    commit_message = f"Upload {file_name}"  # Commit message
+    commit_message = f"Upload {file_name}"
 
     data = {
         "message": commit_message,
@@ -88,8 +66,6 @@ def upload_file_to_github(file_name, file_content, sha=None):
     if sha:
         data["sha"] = sha
 
-    url = f"{GITHUB_API_URL}{file_name}"  # GitHub API URL for the file
-
     # Send the request to upload the file to GitHub
     response = requests.put(url, json=data, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -98,7 +74,6 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Function to display token details from the CSV file after the processing is done
 # Function to display token details from the CSV file after the processing is done
 def display_token_details():
     # Check if the CSV file exists
@@ -141,7 +116,6 @@ with col2:
         st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
 
         # Clear the input directory before uploading a new file
-        st.write("Clearing input directory...")
         clear_input_directory()
 
         file_name = uploaded_file.name
