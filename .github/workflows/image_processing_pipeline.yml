@@ -30,9 +30,10 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Create the process directory (if it doesn't exist)
-    - name: Create process directory
-      run: mkdir -p process/
+    # Step 4: Clean up process directory (remove old CSV files)
+    - name: Clean up process directory
+      run: |
+        rm -f process/*.csv  # Remove all CSV files in the process directory
 
     # Step 5: Run script1.py
     - name: Run script1.py
