@@ -3,19 +3,29 @@ import csv
 from PIL import Image
 import numpy as np
 
+import os
+import csv
+from PIL import Image
+import numpy as np
+
 # Get the directory of the current script and correct paths relative to the root
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))  # Adjusted to point to the repository root
-UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'decryption', 'input')  # Corrected path to the input folder
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+
+# Adjusted directory paths
+UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'decryption', 'input')  # Adjusted to avoid extra 'decryption'
 OUTPUT_FOLDER = os.path.join(ROOT_DIR, 'process')
 DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
 
-# Debugging statements to verify directory paths
+# Check the paths
 print(f"SCRIPT_DIR: {SCRIPT_DIR}")
 print(f"ROOT_DIR: {ROOT_DIR}")
 print(f"UPLOAD_FOLDER: {UPLOAD_FOLDER}")
 print(f"OUTPUT_FOLDER: {OUTPUT_FOLDER}")
 print(f"DATA_FOLDER: {DATA_FOLDER}")
+
+# Rest of your code...
+
 
 # Ensure upload and output directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
