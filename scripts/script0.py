@@ -51,7 +51,7 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Streamlit File Uploader
+# Streamlit File Uploaders
 st.title("Upload a PNG File to GitHub")
 
 # File uploader widget in Streamlit
