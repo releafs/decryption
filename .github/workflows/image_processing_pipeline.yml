@@ -73,11 +73,12 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 10: Commit and push processed results if changes exist
-    - name: Commit and push processed result
+    # Step 10: Pull from remote, commit, and push processed results if changes exist
+    - name: Pull, commit and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
+        git pull origin main || true  # Pull the latest changes from the remote repository
         git add process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
@@ -119,11 +120,12 @@ jobs:
     - name: Run fetch.py
       run: python scripts/fetch.py
 
-    # Step 5: Commit and push the generated HTML
+    # Step 5: Pull, commit and push the generated HTML
     - name: Commit and push generated HTML
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
+        git pull origin main || true  # Pull the latest changes before committing the new HTML
         git add output/token_details.html
-        git commit -m "Generated HTML for the latest processed result"
+        git diff --cached --quiet || git commit -m "Generated HTML for the latest processed result"
         git push
