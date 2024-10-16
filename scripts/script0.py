@@ -4,15 +4,17 @@ import requests
 import base64
 import time
 import pandas as pd
+import zipfile
+import io
 
 # Define GitHub repository details
-GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
-GITHUB_BRANCH = "main"  # Replace with your branch name
+GITHUB_REPO = "releafs/decryption"
+GITHUB_BRANCH = "main"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
 
 # Define the input directory in your GitHub repository
 input_directory_in_github = "decryption/input/"
-csv_file_path = 'process/merged_data_with_metadata.csv'
+csv_file_path = 'output/merged_data_with_metadata.csv'  # Updated path to output directory
 
 # Function to delete all files in the input directory
 def clear_input_directory():
@@ -101,10 +103,6 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-import requests
-import zipfile
-import io
-
 # Function to fetch the artifact and display token details
 def display_token_details():
     # GitHub API URL for fetching artifacts
@@ -138,8 +136,8 @@ def display_token_details():
         zip_file = zipfile.ZipFile(io.BytesIO(artifact_response.content))
         zip_file.extractall()  # Extracting the files
         
-        # Step 5: Look for the CSV file in the extracted artifact
-        extracted_csv_file = 'process/merged_data_with_metadata.csv'  # Replace with the correct path if needed
+        # Step 5: Look for the CSV file in the extracted artifact in the 'output' directory
+        extracted_csv_file = 'output/merged_data_with_metadata.csv'  # Changed to output directory
         
         if not os.path.exists(extracted_csv_file):
             st.error(f"CSV file not found in the artifact: {extracted_csv_file}")
@@ -164,7 +162,34 @@ def display_token_details():
     else:
         st.error(f"Failed to fetch artifacts. Status code: {response.status_code}, {response.text}")
 
+# Streamlit Page Layout
+st.title("Upload and Process Your PNG File")
 
+# Create two columns: left for the image, right for the file upload and info
+col1, col2 = st.columns([1, 2])
+
+# File uploader widget in the right column
+with col2:
+    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+
+    if uploaded_file is not None:
+        # Display the file name and size
+        st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
+
+        # Clear the input directory before uploading a new file
+        st.write("Clearing input directory...")
+        clear_input_directory()
+
+        file_name = uploaded_file.name
+        file_content = uploaded_file.getvalue()  # Get the content of the file
+
+        # Upload the file to GitHub (no need to check for existence because we cleared the directory)
+        response = upload_file_to_github(file_name, file_content)
+
+        if response.status_code in [201, 200]:
+            st.success(f"File {file_name} uploaded/updated successfully!")
+        else:
+            st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
 
 # Display the uploaded image on the left column
 if uploaded_file is not None:
