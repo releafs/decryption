@@ -1,16 +1,12 @@
 name: Image Processing Pipeline
 
 on:
-  # Trigger on push to main or when a workflow completes
+  # Trigger on push to main branch or when a file is pushed to input directory
   push:
     branches:
       - main
     paths:
       - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input/'
-  workflow_run:
-    workflows: ["Image Processing Pipeline"]
-    types:
-      - completed  # Listen for workflow completion
 
 jobs:
   process-images:
