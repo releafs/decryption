@@ -46,7 +46,7 @@ jobs:
     - name: Create input directory if missing
       run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
-    # Step 6: Debugging - List files in input directory to confirm they're present
+    # Step 6: Debugging - List files in the input directory to confirm they're present
     - name: Check input directory for PNGs
       run: |
         echo "Checking input directory for PNGs:"
