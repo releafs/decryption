@@ -46,7 +46,7 @@ jobs:
     - name: Create input directory if missing
       run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
-    # Step 6: Debugging - List files in the input directory to confirm they're present
+    # Step 6: Debugging - List files in input directory to confirm they're present
     - name: Check input directory for PNGs
       run: |
         echo "Checking input directory for PNGs:"
@@ -69,14 +69,13 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Stash local changes, pull from remote, apply stash, and commit processed results
-    - name: Stash, pull, and push processed result
+    # Step 9: Remove local file, pull from remote, commit and push processed results
+    - name: Remove, pull, and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git stash  # Stash any local changes to avoid conflicts
-        git pull origin main --rebase || true  # Pull the latest changes from the remote repository
-        git stash pop || true  # Apply the stashed changes
+        rm -f process/merged_data_with_metadata.csv  # Remove the local file to avoid merge conflicts
+        git pull origin main || true  # Pull the latest changes from the remote repository
         git add process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
