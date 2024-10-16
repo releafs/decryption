@@ -11,10 +11,6 @@ jobs:
   process-images:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        chunk_id: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]  # Divide the task into 10 chunks, adjust this based on file size
-
     permissions:
       contents: write  # Allow pushing changes to the repository
 
@@ -25,58 +21,50 @@ jobs:
       with:
         persist-credentials: true  # Ensure Git credentials are available
 
-    # Step 2: Set up caching for Python dependencies
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
+    # Step 2: Use a pre-built Docker image with all dependencies installed
+    - name: Set up Docker container with pre-installed dependencies
+      uses: docker://python:3.9-slim  # A smaller Python image
       with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+        entrypoint: /bin/bash
 
-    # Step 3: Set up Python environment
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-
-    # Step 4: Install dependencies (only if not cached)
-    - name: Install Dependencies
-      run: |
-        pip install --no-cache-dir -r requirements.txt
-
-    # Step 5: Create input directory if missing
+    # Step 3: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: mkdir -p decryption/input
+      run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
-    # Step 6: Split files into chunks for parallel processing
-    - name: Split files for parallel processing
+    # Step 4: Debugging - List files in input directory to confirm PNG existence
+    - name: Check input directory for PNGs
       run: |
-        total_files=$(ls decryption/input | wc -l)
-        files_per_chunk=$((total_files / 10))
-        start=$((${{ matrix.chunk_id }} * files_per_chunk))
-        end=$((start + files_per_chunk))
-        ls decryption/input | sed -n "${start},${end}p" > decryption/chunk_files.txt
-        echo "Processing chunk ${{ matrix.chunk_id }}: $(cat decryption/chunk_files.txt)"
+        echo "Checking input directory for PNGs:"
+        ls -la decryption/input/
 
-    # Step 7: Process each chunk of files using script1.py, script2.py, script3.py
-    - name: Process chunk with script1.py
-      run: |
-        cat decryption/chunk_files.txt | xargs -I {} python scripts/script1.py decryption/input/{}
+    # Step 5: Run script1.py
+    - name: Run script1.py
+      run: python scripts/script1.py
 
-    - name: Process chunk with script2.py
-      run: |
-        cat decryption/chunk_files.txt | xargs -I {} python scripts/script2.py decryption/input/{}
-
-    - name: Process chunk with script3.py
-      run: |
-        cat decryption/chunk_files.txt | xargs -I {} python scripts/script3.py decryption/input/{}
-
-    # Step 8: Ensure the process directory exists and list files
-    - name: List processed files
+    # Step 6: Ensure the process directory exists and list files
+    - name: List files after script1.py
       run: ls -la process/
 
-    # Step 9: Verify if the output file exists
+    # Step 7: Run script2.py (ensure input directory exists)
+    - name: Run script2.py
+      run: |
+        mkdir -p decryption/input  # Ensure input directory exists
+        python scripts/script2.py
+
+    # Step 8: Run script3.py
+    - name: Run script3.py
+      run: python scripts/script3.py
+
+    # Step 9: Debugging - Print generated files and their contents
+    - name: List files and display contents in process directory before upload
+      run: |
+        ls -la process/
+        echo "Contents of decrypted_data_with_binary.csv:"
+        cat process/decrypted_data_with_binary.csv
+        echo "Contents of merged_data_with_metadata.csv:"
+        cat process/merged_data_with_metadata.csv
+
+    # Step 10: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
@@ -86,15 +74,19 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 10: Commit and push processed result to the repository
+    # Step 11: Commit and push processed result to the repository
     - name: Commit and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
         git add process/merged_data_with_metadata.csv
-        git commit -m "Add processed result for chunk ${{ matrix.chunk_id }}"
+        git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 11: Clean up processed files after commit
+    # Step 12: Run script4.py to delete PNG files
+    - name: Delete Uploaded PNGs
+      run: python scripts/script4.py
+
+    # Step 13: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
