@@ -71,15 +71,15 @@ jobs:
           echo "file_exists=false" >> $GITHUB_ENV
         fi
 
-    # Step 9: Proceed with Git operations only if the output file exists
-    - name: Pull, commit, and push processed result
+       # Step 9: Stash local changes, pull from remote with rebase, apply stash, and commit processed results
+    - name: Stash, pull, and push processed result
       if: env.file_exists == 'true'
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
+        git add process/merged_data_with_metadata.csv
         git stash  # Stash any local changes to avoid conflicts
-        git pull origin main --rebase || true  # Pull the latest changes from the remote repository
-        git stash pop || true  # Apply the stashed changes
+        git pull origin main --rebase --autostash || true  # Pull the latest changes from the remote repository with autostash
         git add process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
@@ -91,7 +91,6 @@ jobs:
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
-
 
     # Step 11: Clean up process directory (Optional if needed)
     - name: Clean up process directory
