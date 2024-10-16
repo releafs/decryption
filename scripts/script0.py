@@ -90,11 +90,18 @@ def display_selected_parameters(csv_data):
 
 # Streamlit File Uploader
 st.title("Scan your Releafs Token")
+
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
-    st.image(uploaded_file)
+    # Create two columns: left for the image, right for the table
+    col1, col2 = st.columns([1, 2])  # Adjust proportions, e.g., 1:2
 
+    # Display the image in the left column
+    with col1:
+        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+
+    # Save the file locally
     with open(f"input/{uploaded_file.name}", "wb") as f:
         f.write(uploaded_file.getbuffer())
     
@@ -112,7 +119,9 @@ if uploaded_file is not None:
 
         if result:
             st.success("Processing complete! Displaying the result below:")
-            display_selected_parameters(result)  # Display the selected parameters
+            # Display the selected parameters in the right column
+            with col2:
+                display_selected_parameters(result)
         else:
             st.error("Could not retrieve the processed result.")
     else:
