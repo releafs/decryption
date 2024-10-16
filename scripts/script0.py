@@ -101,60 +101,70 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-# Function to display token details from the CSV file after the processing is done
+import requests
+import zipfile
+import io
+
+# Function to fetch the artifact and display token details
 def display_token_details():
-    # Check if the CSV file exists
-    if not os.path.exists(csv_file_path):
-        st.error(f"CSV file not found: {csv_file_path}")
-        return
+    # GitHub API URL for fetching artifacts
+    GITHUB_API_ARTIFACT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/artifacts"
+    
+    # Step 1: Fetch the artifact list
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    response = requests.get(GITHUB_API_ARTIFACT_URL, headers=headers)
 
-    # Read the CSV file
-    df = pd.read_csv(csv_file_path)
+    if response.status_code == 200:
+        artifacts = response.json().get("artifacts", [])
+        if not artifacts:
+            st.error("No artifacts found.")
+            return
+        
+        # Step 2: Get the latest artifact
+        latest_artifact = artifacts[0]  # Assuming the first artifact is the latest
+        artifact_download_url = latest_artifact["archive_download_url"]
+        
+        # Step 3: Download the artifact
+        artifact_response = requests.get(artifact_download_url, headers=headers)
+        if artifact_response.status_code != 200:
+            st.error(f"Failed to download artifact. Status code: {artifact_response.status_code}")
+            return
+        
+        # Step 4: Extract the artifact (assumed to be a ZIP file)
+        zip_file = zipfile.ZipFile(io.BytesIO(artifact_response.content))
+        zip_file.extractall()  # Extracting the files
+        
+        # Step 5: Look for the CSV file in the extracted artifact
+        extracted_csv_file = 'process/merged_data_with_metadata.csv'  # Replace with the correct path if needed
+        
+        if not os.path.exists(extracted_csv_file):
+            st.error(f"CSV file not found in the artifact: {extracted_csv_file}")
+            return
+        
+        # Step 6: Read the CSV and display token details
+        df = pd.read_csv(extracted_csv_file)
+        last_row = df.iloc[-1]
 
-    # Get the last row of the dataframe
-    last_row = df.iloc[-1]
+        # Extract the required parameters
+        required_parameters = [
+            "Latitude", "Longitude", "Type of Token", "description", "external_url",
+            "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
+            "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
+        ]
 
-    # Extract the required parameters
-    required_parameters = [
-        "Latitude", "Longitude", "Type of Token", "description", "external_url",
-        "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
-        "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
-    ]
+        parameters = {param: last_row[param] for param in required_parameters if param in last_row}
 
-    parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+        # Display content in Streamlit
+        st.write("### Token Information:")
+        st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
+    else:
+        st.error(f"Failed to fetch artifacts. Status code: {response.status_code}, {response.text}")
 
-    # Display content in Streamlit
-    st.write("### Token Information:")
-    st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
-# Streamlit Page Layout
-st.title("Upload and Process Your PNG File")
-
-# Create two columns: left for the image, right for the file upload and info
-col1, col2 = st.columns([1, 2])
-
-# File uploader widget in the right column
-with col2:
-    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
-
-    if uploaded_file is not None:
-        # Display the file name and size
-        st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-
-        # Clear the input directory before uploading a new file
-        st.write("Clearing input directory...")
-        clear_input_directory()
-
-        file_name = uploaded_file.name
-        file_content = uploaded_file.getvalue()  # Get the content of the file
-
-        # Upload the file to GitHub (no need to check for existence because we cleared the directory)
-        response = upload_file_to_github(file_name, file_content)
-
-        if response.status_code in [201, 200]:
-            st.success(f"File {file_name} uploaded/updated successfully!")
-        else:
-            st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
 
 # Display the uploaded image on the left column
 if uploaded_file is not None:
