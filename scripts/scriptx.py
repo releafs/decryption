@@ -1,16 +1,17 @@
 import os
 
-# Define the process directory path
-process_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'process')
+# Absolute path to the process directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current script
+PROCESS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'process'))  # Process directory
 
 # List of specific files to delete
 files_to_delete = ['decrypted_data.csv', 'decrypted_data_with_binary.csv', 'merged_data_with_metadata.csv']
 
 # Ensure the process directory exists
-if os.path.exists(process_dir):
+if os.path.exists(PROCESS_DIR):
     # Iterate over the list of specific files to delete
     for filename in files_to_delete:
-        file_path = os.path.join(process_dir, filename)
+        file_path = os.path.join(PROCESS_DIR, filename)
         # Check if the file exists and delete it
         if os.path.exists(file_path):
             try:
@@ -21,4 +22,4 @@ if os.path.exists(process_dir):
         else:
             print(f"File not found: {file_path}")
 else:
-    print(f"Process directory does not exist: {process_dir}")
+    print(f"Process directory does not exist: {PROCESS_DIR}")
