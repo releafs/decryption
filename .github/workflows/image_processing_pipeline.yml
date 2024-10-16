@@ -30,8 +30,8 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 4: Run scriptx.py to clean up old CSV files
-    - name: Run scriptx.py (Clean up old CSVs)
+    # Step 4: Run scriptx.py to clean up specific old CSV files
+    - name: Run scriptx.py (Clean up specific old CSVs)
       run: python scripts/scriptx.py  # Running the custom clean-up script
 
     # Step 5: Run script1.py
