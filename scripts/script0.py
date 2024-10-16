@@ -1,138 +1,91 @@
-import os
-import streamlit as st
-import requests
-import base64
-import time
-import pandas as pd
+name: Image Processing Pipeline
 
-# Define GitHub repository details
-GITHUB_REPO = "releafs/decryption"
-GITHUB_BRANCH = "main"
-GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+on:
+  # Trigger on push to main branch or when a file is pushed to input directory
+  push:
+    branches:
+      - main
+    paths:
+      - 'decryption/input/**'  # Trigger when a file is pushed to 'decryption/input/'
 
-# Define the input directory and process result paths in your GitHub repository
-input_directory_in_github = "decryption/input/"
-process_result_path = "decryption/process/merged_data_with_metadata.csv"
+jobs:
+  process-images:
+    runs-on: ubuntu-latest
 
-# GitHub API URL to upload files and fetch results
-GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
-GITHUB_PROCESS_RESULT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{process_result_path}"
+    permissions:
+      contents: write  # Allow pushing changes to the repository
 
-# List of parameters to extract from the CSV
-required_parameters = [
-    "Latitude", "Longitude", "Type of Token", "description", "external_url",
-    "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
-    "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
-]
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: true  # Ensure Git credentials are available
 
-# Function to check if the file exists in the GitHub repository
-def check_if_file_exists(file_name):
-    url = f"{GITHUB_API_URL}{file_name}"
-    response = requests.get(url, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
+    # Step 2: Cache pip dependencies
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
 
-    if response.status_code == 200:
-        return response.json().get('sha')  # Return the SHA of the existing file
-    return None
+    # Step 3: Set up Python environment
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
 
-# Function to upload the file to GitHub
-def upload_file_to_github(file_name, file_content, sha=None):
-    encoded_content = base64.b64encode(file_content).decode("utf-8")
-    commit_message = f"Upload {file_name}"
+    # Step 4: Install dependencies (only if not cached)
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
 
-    data = {
-        "message": commit_message,
-        "content": encoded_content,
-        "branch": GITHUB_BRANCH
-    }
+    # Step 5: Ensure the input directory exists before running any scripts
+    - name: Create input directory if missing
+      run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
-    if sha:
-        data["sha"] = sha
+    # Step 6: Debugging - List files in input directory to confirm PNG existence
+    - name: Check input directory for PNGs
+      run: |
+        echo "Checking input directory for PNGs:"
+        ls -la decryption/input/
 
-    url = f"{GITHUB_API_URL}{file_name}"
+    # Step 7: Run the main processing scripts with a delay to prevent race conditions
+    - name: Run processing scripts
+      run: |
+        python scripts/script1.py
+        python scripts/script2.py
+        python scripts/script3.py
+        sleep 60  # Add a 1-minute delay to ensure files are created before fetching
 
-    response = requests.put(url, json=data, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
+    # Step 8: Verify if the output file exists
+    - name: Verify output file exists
+      run: |
+        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
+          echo "Output file not found!"
+          exit 1
+        else
+          echo "Output file found!"
+        fi
 
-    return response
+    # Step 9: Commit and push processed results if changes exist
+    - name: Commit and push processed result
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git add process/merged_data_with_metadata.csv
+        git commit -m "Add processed result for ${{ github.sha }}"
+        git push
 
-# Function to wait for the workflow completion by polling for the presence of the processed result
-def wait_for_process_completion(retries=20, delay=10):
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
+    # Step 10: Upload the artifact with a unique name including commit SHA
+    - name: Upload processed result as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: processed-results-${{ github.sha }}
+        path: process/merged_data_with_metadata.csv
 
-    for attempt in range(retries):
-        response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
-        if response.status_code == 200:
-            file_info = response.json()
-            content = base64.b64decode(file_info["content"]).decode("utf-8")
-            return content
-        else:
-            st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
-            time.sleep(delay)
-
-    st.error("Processed result could not be fetched after multiple retries.")
-    return None
-
-# Function to display the selected parameters in a two-column table
-def display_selected_parameters(csv_data):
-    from io import StringIO
-    data = StringIO(csv_data)
-    df = pd.read_csv(data)
-
-    filtered_data = df[required_parameters].iloc[0]
-
-    parameters_df = pd.DataFrame({
-        "Parameters": filtered_data.index,
-        "Values": filtered_data.values
-    })
-
-    st.table(parameters_df)
-
-# Streamlit File Uploader
-st.title("Scan your Releafs Token")
-
-st.markdown(
-    """
-Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
-Powered by [Releafs](https://www.releafs.co)
-    """
-)
-
-uploaded_file = st.file_uploader("Choose a PNG image", type="png")
-
-if uploaded_file is not None:
-    st.write("Uploading and processing your file. Please wait...")
-
-    file_name = uploaded_file.name
-    file_content = uploaded_file.getvalue()
-
-    sha = check_if_file_exists(file_name)
-
-    # Upload the file to GitHub
-    response = upload_file_to_github(file_name, file_content, sha)
-
-    if response.status_code in [201, 200]:
-        st.write("File uploaded successfully! Waiting for processing to complete...")
-
-        # Wait for 1 minute before starting to check for the result
-        time.sleep(60)  # Adjust this delay based on average workflow completion time
-
-        # Wait for the workflow to complete and fetch the result directly from GitHub
-        result = None
-        with st.spinner("Waiting for the processed result..."):
-            result = wait_for_process_completion()
-
-        if result:
-            st.success("Processing complete! Displaying the result below:")
-            display_selected_parameters(result)
-        else:
-            st.error("Could not retrieve the processed result.")
-    else:
-        st.error(f"Failed to upload {file_name}. Response: {response.text}")
+    # Step 11: Clean up process directory
+    - name: Clean up process directory
+      run: rm -rf process/*
