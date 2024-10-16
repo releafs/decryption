@@ -3,6 +3,9 @@ import streamlit as st
 import requests
 import base64
 import time
+import zipfile
+import io
+
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
