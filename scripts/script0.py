@@ -7,7 +7,98 @@ import zipfile
 import io
 import pandas as pd
 
-# (Other imports and initial setup remain the same)
+# Define GitHub repository details
+GITHUB_REPO = "releafs/decryption"
+GITHUB_BRANCH = "main"  # Change if you're using a different branch
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+
+# Define the input directory in your GitHub repository
+input_directory_in_github = "decryption/input/"
+
+# GitHub API URL to upload files
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+
+# List of parameters to extract from the CSV
+required_parameters = [
+    "Latitude", "Longitude", "Type of Token", "description", "external_url",
+    "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
+    "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
+]
+
+# Function to check if the file exists in the GitHub repository
+def check_if_file_exists(file_name):
+    url = f"{GITHUB_API_URL}{file_name}"
+    response = requests.get(url, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    if response.status_code == 200:
+        return response.json().get('sha')  # Return the SHA of the existing file
+    return None
+
+# Function to upload the file to GitHub
+def upload_file_to_github(file_name, file_content, sha=None):
+    encoded_content = base64.b64encode(file_content).decode("utf-8")
+    commit_message = f"Upload {file_name}"
+
+    data = {
+        "message": commit_message,
+        "content": encoded_content,
+        "branch": GITHUB_BRANCH
+    }
+
+    if sha:
+        data["sha"] = sha
+
+    url = f"{GITHUB_API_URL}{file_name}"
+
+    response = requests.put(url, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    # Returning both response and commit SHA
+    return response, data.get("sha")
+
+# Function to get workflow run ID by commit SHA
+def get_workflow_run_by_commit(commit_sha):
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
+    response = requests.get(WORKFLOW_RUNS_URL, headers=headers)
+    if response.status_code == 200:
+        workflow_runs = response.json()["workflow_runs"]
+        for run in workflow_runs:
+            if run["head_sha"] == commit_sha:
+                return run["id"]  # Return the run ID of the matching workflow run
+    return None
+
+# Function to wait for workflow completion
+def wait_for_workflow_completion(run_id, retries=20, delay=15):
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+
+    WORKFLOW_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}"
+    
+    for attempt in range(retries):
+        response = requests.get(WORKFLOW_URL, headers=headers)
+        if response.status_code == 200:
+            workflow = response.json()
+            if workflow["status"] == "completed":
+                return workflow["conclusion"] == "success"
+            else:
+                st.write(f"Workflow in progress. Retrying in {delay} seconds... ({attempt+1}/{retries})")
+                time.sleep(delay)
+        else:
+            st.error(f"Error fetching workflow status: {response.text}")
+            return False
+    return False
 
 # Function to fetch the artifact with the specific name
 def fetch_artifact(run_id, artifact_name, retries=20, delay=10):
@@ -32,17 +123,11 @@ def fetch_artifact(run_id, artifact_name, retries=20, delay=10):
                                 for file in z.namelist():
                                     if file.endswith("merged_data_with_metadata.csv"):
                                         return z.read(file).decode("utf-8")
-                            else:
-                                st.error(f"File not found in the artifact.")
-                                return None
                         else:
                             st.error(f"Failed to download artifact: {artifact_response.text}")
                             return None
-                else:
-                    st.write(f"Artifact '{artifact_name}' not found. Retrying {attempt+1}/{retries}...")
-                    time.sleep(delay)
             else:
-                st.write(f"No artifacts found. Retrying {attempt+1}/{retries}...")
+                st.write(f"Artifacts not found. Retrying {attempt+1}/{retries}...")
                 time.sleep(delay)
         else:
             st.error(f"Failed to fetch artifacts: {response.text}")
@@ -51,7 +136,31 @@ def fetch_artifact(run_id, artifact_name, retries=20, delay=10):
     st.error(f"Artifact '{artifact_name}' could not be fetched after multiple retries.")
     return None
 
-# Main application logic
+# Function to display the selected parameters in a two-column table
+def display_selected_parameters(csv_data):
+    from io import StringIO
+    data = StringIO(csv_data)
+    df = pd.read_csv(data)
+
+    filtered_data = df[required_parameters].iloc[0]
+
+    parameters_df = pd.DataFrame({
+        "Parameters": filtered_data.index,
+        "Values": filtered_data.values
+    })
+
+    st.table(parameters_df)
+
+# Streamlit File Uploader
+st.title("Scan your Releafs Token")
+
+st.markdown(
+    """
+Your Releafs Token empowers real-world climate action. Track your token to discover the tangible, positive impact you're contributing to. Together, we’re making a sustainable future possible.
+Powered by [Releafs](https://www.releafs.co)
+    """
+)
+
 uploaded_file = st.file_uploader("Choose a PNG image", type="png")
 
 if uploaded_file is not None:
