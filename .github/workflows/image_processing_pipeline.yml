@@ -1,4 +1,4 @@
-name: Image Processing and HTML Generation Pipeline
+name: Image Processing Pipeline
 
 on:
   # Trigger on push to main branch or when a file is pushed to the input directory
@@ -93,39 +93,3 @@ jobs:
     # Step 12: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
-
-  generate-html:
-    runs-on: ubuntu-latest
-    needs: process-images  # Run this job only if the image processing job succeeds
-
-    steps:
-    # Step 1: Check out the repository
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: true
-
-    # Step 2: Set up Python environment
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-
-    # Step 3: Install dependencies
-    - name: Install Dependencies
-      run: |
-        pip install -r requirements.txt
-
-    # Step 4: Run fetch.py to generate the HTML based on the latest CSV
-    - name: Run fetch.py
-      run: python scripts/fetch.py
-
-    # Step 5: Pull, commit and push the generated HTML
-    - name: Commit and push generated HTML
-      run: |
-        git config --global user.email "action@github.com"
-        git config --global user.name "GitHub Action"
-        git pull origin main || true  # Pull the latest changes before committing the new HTML
-        git add output/token_details.html
-        git diff --cached --quiet || git commit -m "Generated HTML for the latest processed result"
-        git push
