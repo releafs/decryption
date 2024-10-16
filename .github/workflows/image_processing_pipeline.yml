@@ -1,7 +1,7 @@
 name: Image Processing Pipeline
 
 on:
-  # Trigger on push to main branch or when a file is pushed to input directory
+  # Trigger on push to main branch or when a file is pushed to the input directory
   push:
     branches:
       - main
@@ -52,13 +52,12 @@ jobs:
         echo "Checking input directory for PNGs:"
         ls -la decryption/input/
 
-    # Step 7: Run the main processing scripts with a delay to prevent race conditions
+    # Step 7: Run the main processing scripts (No delay)
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
-        sleep 60  # Add a 1-minute delay to ensure files are created before fetching
 
     # Step 8: Verify if the output file exists
     - name: Verify output file exists
