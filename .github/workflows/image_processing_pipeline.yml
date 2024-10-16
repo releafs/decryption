@@ -56,7 +56,7 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Stage and commit the changes only if there are any
+    # Step 9: Stage and commit if changes exist
     - name: Stage and commit if changes exist
       run: |
         git config --global user.email "action@github.com"
@@ -69,9 +69,9 @@ jobs:
           git push
         fi
 
-    # Step 10: Upload the artifact (merged_data_with_metadata.csv)
+    # Step 10: Upload the artifact (merged_data_with_metadata.csv) using v4
     - name: Upload processed result as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated to v4 to avoid deprecation
       with:
         name: processed-results
         path: process/merged_data_with_metadata.csv
