@@ -59,24 +59,17 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Introduce a sleep delay before checking the result
-    # This allows the GitHub workflow to ensure the file is processed properly before continuing
-    - name: Wait before verifying output
-      run: |
-        echo "Waiting for 60 seconds to allow the processing to complete..."
-        sleep 60  # Add a 1-minute delay to ensure files are created before fetching
-
-    # Step 9: Verify if the output file exists
+    # Step 8: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Output file not found! Exiting..."
+          echo "Output file not found!"
           exit 1
         else
           echo "Output file found!"
         fi
 
-    # Step 10: Commit and push processed results if changes exist
+    # Step 9: Commit and push processed results if changes exist
     - name: Commit and push processed result
       run: |
         git config --global user.email "action@github.com"
@@ -85,13 +78,26 @@ jobs:
         git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 11: Upload the artifact with a unique name including commit SHA
+    # Step 10: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
 
-    # Step 12: Clean up process directory
+    # Step 11: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
+      
+  # Second job to trigger fetch.py, delayed by 1 minute to ensure processing is completed
+  fetch-results:
+    needs: process-images
+    runs-on: ubuntu-latest
+    steps:
+    # Step 12: Wait for processing to finish (fetch.py will handle the wait)
+    - name: Wait before fetching results
+      run: sleep 60  # 1-minute delay before running the fetch script
+
+    # Step 13: Run the fetching script (fetch.py) to retrieve the results
+    - name: Run fetch script
+      run: python scripts/fetch.py
