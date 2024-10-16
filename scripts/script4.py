@@ -1,41 +1,39 @@
+# scripts/script4.py
+
 import os
+import subprocess
 
 def main():
-    # Get the directory of the current script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    print(f"Script directory: {script_dir}")
+    # Define the directory where the PNG files are located
+    INPUT_DIR = os.path.join(os.getcwd(), 'decryption', 'input')
 
-    # Get the absolute path to the root directory (one level up from the script directory)
-    root_dir = os.path.abspath(os.path.join(script_dir, '..'))
-    print(f"Root directory: {root_dir}")
+    # List all PNG files in the input directory
+    png_files = [f for f in os.listdir(INPUT_DIR) if f.lower().endswith('.png')]
 
-    # Get the absolute path to the process directory
-    process_dir = os.path.join(root_dir, 'process')
-    print(f"Process directory: {process_dir}")
+    if not png_files:
+        print("No PNG files to delete.")
+        return
 
-    # List of specific files to delete
-    files_to_delete = [
-        'decrypted_data.csv',
-        'decrypted_data_with_binary.csv',
-        'merged_data_with_metadata.csv'
-    ]
+    # Delete each PNG file
+    for file_name in png_files:
+        file_path = os.path.join(INPUT_DIR, file_name)
+        os.remove(file_path)
+        print(f"Deleted {file_path}")
 
-    # Ensure the process directory exists
-    if os.path.exists(process_dir):
-        # Iterate over the list of specific files to delete
-        for filename in files_to_delete:
-            file_path = os.path.join(process_dir, filename)
-            # Check if the file exists and delete it
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                    print(f"Deleted: {file_path}")
-                except Exception as e:
-                    print(f"Failed to delete {file_path}. Reason: {e}")
-            else:
-                print(f"File not found (cannot delete): {file_path}")
-    else:
-        print(f"Process directory does not exist: {process_dir}")
+    # Configure Git user details
+    subprocess.run(['git', 'config', '--global', 'user.email', '"action@github.com"'], check=True)
+    subprocess.run(['git', 'config', '--global', 'user.name', '"GitHub Action"'], check=True)
+
+    # Stage the deleted files
+    subprocess.run(['git', 'add', '-u', INPUT_DIR], check=True)
+
+    # Commit the changes
+    commit_message = 'Delete uploaded PNG files from input directory'
+    subprocess.run(['git', 'commit', '-m', commit_message], check=True)
+
+    # Push changes back to the repository
+    subprocess.run(['git', 'push'], check=True)
+    print("Deleted PNG files have been committed and pushed to the repository.")
 
 if __name__ == '__main__':
     main()
