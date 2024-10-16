@@ -10,49 +10,35 @@ GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
 GITHUB_BRANCH = "main"  # Replace with your branch name
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
 
-# Define directories in your GitHub repository
+# Define directories and file paths
 input_directory_in_github = "decryption/input/"
-process_directory_in_github = "decryption/process/"
 csv_file_path = 'process/merged_data_with_metadata.csv'
 
-# Function to check if a file exists and get its SHA (needed for updating existing files)
-def get_file_sha(directory, file_name):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{directory}{file_name}"
-    response = requests.get(GITHUB_API_URL, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
-    if response.status_code == 200:
-        file_data = response.json()
-        return file_data.get('sha')  # Return the SHA of the file if it exists
-    return None  # Return None if the file doesn't exist
-
-# Function to silently delete all files in the specified GitHub directory
-def clear_directory(directory):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{directory}"
+# Function to silently delete all files in the input directory without showing messages
+def clear_input_directory():
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
     response = requests.get(GITHUB_API_URL, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     })
 
-    # If the directory does not exist or is empty, skip without any message
+    # If the directory does not exist or is empty, skip silently
     if response.status_code == 404:
-        return  # Silently skip
+        return
 
     if response.status_code == 200:
         files = response.json()
         for file in files:
             file_name = file['name']
             sha = file['sha']
-            delete_response = delete_file_in_github(directory, file_name, sha)
+            delete_response = delete_file_in_github(file_name, sha)
             # Silent deletion without any message
     else:
         return  # Silently skip in case of any error
 
 # Function to delete a file in the GitHub repository
-def delete_file_in_github(directory, file_name, sha):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{directory}"
-    url = f"{GITHUB_API_URL}/{file_name}"
+def delete_file_in_github(file_name, sha):
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     data = {
         "message": f"Delete {file_name}",
         "sha": sha,
@@ -64,30 +50,11 @@ def delete_file_in_github(directory, file_name, sha):
     })
     return response
 
-# Function to recreate an empty directory on GitHub by adding a placeholder file
-def recreate_directory(directory):
-    # Create a placeholder file in the directory to ensure it exists
-    placeholder_file = "placeholder.txt"
-    placeholder_content = "This is a placeholder file to recreate the directory."
-    upload_file_to_github(f"{directory}/{placeholder_file}", placeholder_content.encode('utf-8'))
-
-# Function to clear and recreate both input and process directories
-def clear_and_recreate_directories():
-    # Clear input and process directories
-    clear_directory("decryption/input/")
-    clear_directory("decryption/process/")
-    
-    # Recreate input and process directories
-    recreate_directory("decryption/input")
-    recreate_directory("decryption/process")
-
 # Function to upload the file to GitHub
-def upload_file_to_github(file_name, file_content):
-    directory = "/".join(file_name.split('/')[:-1])  # Extract the directory from the file name
-    file_sha = get_file_sha(directory, file_name.split('/')[-1])  # Get the SHA if the file exists
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}"
+def upload_file_to_github(file_name, file_content, sha=None):
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
-    commit_message = f"Upload {file_name}"  # Commit message
+    commit_message = f"Upload {file_name}"
 
     data = {
         "message": commit_message,
@@ -96,11 +63,11 @@ def upload_file_to_github(file_name, file_content):
     }
 
     # If the file already exists, include the SHA to update it
-    if file_sha:
-        data["sha"] = file_sha
+    if sha:
+        data["sha"] = sha
 
     # Send the request to upload the file to GitHub
-    response = requests.put(GITHUB_API_URL, json=data, headers={
+    response = requests.put(url, json=data, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     })
@@ -133,6 +100,7 @@ def display_token_details():
     st.write("### Token Information:")
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
+
 # Streamlit Page Layout
 st.title("Scan Your Releafs' Token")
 
@@ -147,13 +115,13 @@ with col2:
         # Display the file name and size
         st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
 
-        # Clear and recreate directories before uploading a new file
-        clear_and_recreate_directories()
+        # Clear the input directory before uploading a new file
+        clear_input_directory()
 
-        file_name = f"decryption/input/{uploaded_file.name}"
+        file_name = uploaded_file.name
         file_content = uploaded_file.getvalue()  # Get the content of the file
 
-        # Upload the file to GitHub
+        # Upload the file to GitHub (no need to check for existence because we cleared the directory)
         response = upload_file_to_github(file_name, file_content)
 
         if response.status_code in [201, 200]:
