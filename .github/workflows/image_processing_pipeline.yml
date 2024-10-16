@@ -39,7 +39,7 @@ jobs:
       run: python scripts/script1.py
 
     # Step 6: Run script2.py
-      name: Run script2.py
+    - name: Run script2.py
       run: python scripts/script2.py
 
     # Step 7: Run script3.py
