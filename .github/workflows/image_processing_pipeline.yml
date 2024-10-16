@@ -56,14 +56,18 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 9: Stage all changes and untracked files for commit
-    - name: Stage and commit all files
+    # Step 9: Stage and commit the changes only if there are any
+    - name: Stage and commit if changes exist
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git add process/*.csv  # Add all CSV files
-        git commit -m "Add processed result"
-        git push
+        git add process/*.csv || true
+        if git diff-index --quiet HEAD; then
+          echo "No changes to commit."
+        else
+          git commit -m "Add processed result"
+          git push
+        fi
 
     # Step 10: Upload the artifact (merged_data_with_metadata.csv)
     - name: Upload processed result as artifact
