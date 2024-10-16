@@ -37,7 +37,7 @@ def check_if_file_exists(file_name):
         return response.json().get('sha')  # Return the SHA of the existing file
     return None
 
-# Function to upload the file to GitHub
+# Function to upload the file to GitHub and return the commit SHA
 def upload_file_to_github(file_name, file_content, sha=None):
     encoded_content = base64.b64encode(file_content).decode("utf-8")
     commit_message = f"Upload {file_name}"
@@ -58,37 +58,50 @@ def upload_file_to_github(file_name, file_content, sha=None):
         "Accept": "application/vnd.github.v3+json"
     })
 
-    return response
+    if response.status_code in [200, 201]:
+        commit_sha = response.json().get('commit', {}).get('sha')
+        return response, commit_sha
+    else:
+        return response, None
 
-# Function to get the latest workflow run ID and status
-def get_latest_workflow_run_id():
+# Function to get the workflow run ID associated with a commit SHA
+def get_workflow_run_by_commit(commit_sha, retries=10, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
-    WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
-    response = requests.get(WORKFLOW_RUNS_URL, headers=headers)
-    
-    if response.status_code == 200:
-        workflow_runs = response.json()["workflow_runs"]
-        if workflow_runs:
-            run_id = workflow_runs[0]["id"]
-            status = workflow_runs[0]["status"]
-            return run_id, status  # Return the run ID and status
-    else:
-        st.error(f"Failed to fetch workflow runs: {response.text}")
-        return None, None
+    for attempt in range(retries):
+        WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
+        params = {
+            "event": "push",
+            "per_page": 100
+        }
+        response = requests.get(WORKFLOW_RUNS_URL, headers=headers, params=params)
+        if response.status_code == 200:
+            workflow_runs = response.json()["workflow_runs"]
+            # Look for the workflow run with the matching head_sha
+            for run in workflow_runs:
+                if run["head_sha"] == commit_sha:
+                    return run["id"]
+            else:
+                st.write(f"Workflow run not found for commit {commit_sha}. Retrying in {delay} seconds...")
+                time.sleep(delay)
+        else:
+            st.error(f"Failed to fetch workflow runs: {response.text}")
+            return None
+    st.error("Workflow run not found after multiple retries.")
+    return None
 
 # Function to poll workflow completion
-def wait_for_workflow_completion(run_id, retries=10, delay=10):
+def wait_for_workflow_completion(run_id, retries=20, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
     WORKFLOW_RUN_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}"
-    
+
     for attempt in range(retries):
         response = requests.get(WORKFLOW_RUN_URL, headers=headers)
         if response.status_code == 200:
@@ -100,7 +113,7 @@ def wait_for_workflow_completion(run_id, retries=10, delay=10):
                     st.success("Workflow completed successfully.")
                     return True
                 else:
-                    st.error("Workflow completed with failure.")
+                    st.error(f"Workflow completed with conclusion: {conclusion}")
                     return False
             else:
                 st.write(f"Workflow status: {status}. Retrying in {delay} seconds...")
@@ -154,13 +167,16 @@ def display_selected_parameters(csv_data):
     data = StringIO(csv_data)
     df = pd.read_csv(data)
 
-    filtered_data = df[required_parameters].iloc[0]
+    # Filter the DataFrame to only include the required parameters
+    filtered_data = df[required_parameters].iloc[0]  # Take the first row of the filtered columns
 
+    # Create a two-column table with 'Parameters' and 'Values'
     parameters_df = pd.DataFrame({
         "Parameters": filtered_data.index,
         "Values": filtered_data.values
     })
 
+    # Display the DataFrame as a table in Streamlit
     st.table(parameters_df)
 
 # Streamlit File Uploader
@@ -183,26 +199,22 @@ if uploaded_file is not None:
 
     sha = check_if_file_exists(file_name)
 
-    # Upload the file to GitHub
-    response = upload_file_to_github(file_name, file_content, sha)
+    # Upload the file to GitHub and get the commit SHA
+    response, commit_sha = upload_file_to_github(file_name, file_content, sha)
 
-    if response.status_code == 201 or response.status_code == 200:
+    if response.status_code in [201, 200] and commit_sha:
         st.write("File uploaded successfully! Processing...")
 
-        run_id, status = get_latest_workflow_run_id()
+        # Get the workflow run ID associated with the commit SHA
+        run_id = get_workflow_run_by_commit(commit_sha)
 
-        if run_id and status:
-            if status != "completed":
-                st.write("Waiting for the workflow to complete...")
-                completed = wait_for_workflow_completion(run_id)
-            else:
-                completed = True
-
+        if run_id:
+            st.write("Waiting for the workflow to complete...")
+            completed = wait_for_workflow_completion(run_id)
             if completed:
                 result = None
-                with st.spinner("Waiting for the processed artifact..."):
+                with st.spinner("Fetching the processed artifact..."):
                     result = fetch_artifact(run_id)
-
                 if result:
                     st.success("Processing complete! Displaying the result below:")
                     display_selected_parameters(result)
@@ -211,6 +223,6 @@ if uploaded_file is not None:
             else:
                 st.error("Workflow did not complete successfully.")
         else:
-            st.error("Failed to retrieve workflow run ID.")
+            st.error("Failed to find the workflow run associated with the file upload.")
     else:
         st.error(f"Failed to upload {file_name}. Response: {response.text}")
