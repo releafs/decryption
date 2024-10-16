@@ -42,34 +42,28 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 5: Delete and recreate the 'process' directory
-    - name: Reset process directory
-      run: |
-        rm -rf ${{ github.workspace }}/process  # Delete 'process' directory if it exists
-        mkdir -p ${{ github.workspace }}/process  # Recreate the 'process' directory
-
-    # Step 6: Run script4.py to delete all files and the input directory
+    # Step 5: Run script4.py to delete all files and the input directory (But NOT the 'process' directory)
     - name: Delete input files and directory
-      run: python scripts/script4.py  # This runs your updated script to delete all files and the input directory
+      run: python scripts/script4.py  # Ensure this script does not delete 'process' directory
 
-    # Step 7: Ensure the input directory exists before running any scripts
+    # Step 6: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: mkdir -p ${{ github.workspace }}/decryption/input  # Create the input directory if it doesn't exist
+      run: mkdir -p ${{ github.workspace }}/decryption/input  # Ensure the input directory exists
 
-    # Step 8: Debugging - List files in input directory to confirm it's empty
+    # Step 7: Debugging - List files in input directory to confirm it's empty
     - name: Check input directory for PNGs after deletion
       run: |
         echo "Checking input directory for PNGs after deletion:"
         ls -la ${{ github.workspace }}/decryption/input/
 
-    # Step 9: Run the main processing scripts (No delay)
+    # Step 8: Run the main processing scripts (No delay)
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 10: Verify if the output file exists
+    # Step 9: Verify if the output file exists in the 'process' directory
     - name: Verify output file exists
       run: |
         if [ ! -f "${{ github.workspace }}/process/merged_data_with_metadata.csv" ]; then
@@ -79,7 +73,7 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 11: Pull from remote, commit, and push processed results if changes exist
+    # Step 10: Pull from remote, commit, and push processed results if changes exist
     - name: Pull, commit and push processed result
       run: |
         git config --global user.email "action@github.com"
@@ -89,13 +83,14 @@ jobs:
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 12: Upload the artifact with a unique name including commit SHA
+    # Step 11: Upload the artifact with a unique name including commit SHA
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
 
-    # Step 13: Clean up process directory
-    - name: Clean up process directory
-      run: rm -rf ${{ github.workspace }}/process/*
+    # Step 12: Clean up process files but NOT the directory itself
+    - name: Clean up process files
+      run: |
+        find ${{ github.workspace }}/process -type f -not -name '.gitkeep' -delete  # Deletes only files, not the 'process' directory
