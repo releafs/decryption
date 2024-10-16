@@ -88,16 +88,20 @@ jobs:
     # Step 11: Clean up process directory
     - name: Clean up process directory
       run: rm -rf process/*
-      
-  # Second job to trigger fetch.py, delayed by 1 minute to ensure processing is completed
+
   fetch-results:
-    needs: process-images
+    needs: process-images  # Ensure this job waits for the previous job to finish
     runs-on: ubuntu-latest
+
     steps:
-    # Step 12: Wait for processing to finish (fetch.py will handle the wait)
+    # Step 12: Check out the repository again
+    - name: Checkout Repository
+      uses: actions/checkout@v4  # Ensure the repository is checked out in this job
+
+    # Step 13: Wait for processing to finish (fetch.py will handle the wait)
     - name: Wait before fetching results
       run: sleep 60  # 1-minute delay before running the fetch script
 
-    # Step 13: Run the fetching script (fetch.py) to retrieve the results
+    # Step 14: Run the fetching script (fetch.py) to retrieve the results
     - name: Run fetch script
       run: python scripts/fetch.py
