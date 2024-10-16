@@ -42,9 +42,11 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 5: Run process.py to delete and recreate the 'process' directory in the repository root
+    # Step 5: Delete and recreate the 'process' directory
     - name: Reset process directory
-      run: python scripts/process.py  # This script will delete and recreate the process directory in the root
+      run: |
+        rm -rf ${{ github.workspace }}/process  # Delete 'process' directory if it exists
+        mkdir -p ${{ github.workspace }}/process  # Recreate the 'process' directory
 
     # Step 6: Run script4.py to delete all files and the input directory
     - name: Delete input files and directory
@@ -67,7 +69,7 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 10: Verify if the output file exists using an absolute path
+    # Step 10: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "${{ github.workspace }}/process/merged_data_with_metadata.csv" ]; then
