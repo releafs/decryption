@@ -8,8 +8,8 @@ METADATA_TSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/da
 
 # Define the directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))  # Adjusted from '..', '..' to '..'
-PROCESS_DIR = os.path.join(ROOT_DIR, 'decryption', 'process')
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+PROCESS_DIR = os.path.join(ROOT_DIR, 'process')  # Updated this line
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
@@ -40,10 +40,14 @@ def load_metadata():
 def load_decrypted_data_with_binary():
     decrypted_data_file_path = os.path.join(PROCESS_DIR, 'decrypted_data_with_binary.csv')
     decrypted_data = []
-    with open(decrypted_data_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            decrypted_data.append(row)
+    try:
+        with open(decrypted_data_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                decrypted_data.append(row)
+    except FileNotFoundError:
+        print(f"Decrypted data file not found at {decrypted_data_file_path}")
+        return []
     return decrypted_data
 
 # Function to clean and compare strings safely, preserving leading zeros
