@@ -2,10 +2,10 @@ import os
 import shutil
 
 def delete_and_recreate_process_directory():
-    # Navigate to the root directory
-    root_dir = os.path.dirname(os.path.abspath(__file__))  # Get the root directory of the script
+    # Use the GITHUB_WORKSPACE environment variable to ensure the path is absolute
+    root_dir = os.environ.get('GITHUB_WORKSPACE', os.getcwd())  # GITHUB_WORKSPACE gives the absolute path to the root of the repository
     
-    # Set the correct 'process' directory under the root
+    # Set the absolute 'process' directory path
     process_dir = os.path.join(root_dir, 'process')
     
     # Delete the 'process' directory if it exists
