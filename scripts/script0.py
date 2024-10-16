@@ -10,11 +10,11 @@ GITHUB_REPO = "releafs/decryption"  # Replace with your repository name
 GITHUB_BRANCH = "main"  # Replace with your branch name
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]  # Use Streamlit secrets to store your GitHub token securely
 
-# Define the input directory in your GitHub repository
+# Define directories and file paths
 input_directory_in_github = "decryption/input/"
 csv_file_path = 'process/merged_data_with_metadata.csv'
 
-# Function to delete all files in the input directory
+# Function to silently delete all files in the input directory without showing messages
 def clear_input_directory():
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
     response = requests.get(GITHUB_API_URL, headers={
@@ -22,48 +22,23 @@ def clear_input_directory():
         "Accept": "application/vnd.github.v3+json"
     })
 
+    # If the directory does not exist or is empty, skip silently
+    if response.status_code == 404:
+        return
+
     if response.status_code == 200:
         files = response.json()
-        if len(files) == 0:
-            st.write("Directory is already empty.")
-        else:
-            for file in files:
-                file_name = file['name']
-                sha = file['sha']
-                delete_response = delete_file_in_github(file_name, sha)
-                if delete_response.status_code == 200:
-                    st.write(f"Deleted {file_name} successfully.")
-                else:
-                    st.error(f"Failed to delete {file_name}. Response: {delete_response.status_code}, {delete_response.text}")
-    elif response.status_code == 404:
-        st.warning(f"Directory {input_directory_in_github} not found, creating it...")
-        create_placeholder_file()
+        for file in files:
+            file_name = file['name']
+            sha = file['sha']
+            delete_response = delete_file_in_github(file_name, sha)
+            # Silent deletion without any message
     else:
-        st.error(f"Failed to list files in directory. Response: {response.status_code}, {response.text}")
-
-# Function to create a placeholder file if the directory does not exist
-def create_placeholder_file():
-    file_name = ".gitkeep"  # Placeholder file
-    content = base64.b64encode(b'').decode('utf-8')  # Empty file content
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
-    data = {
-        "message": "Create input directory with placeholder file",
-        "content": content,
-        "branch": GITHUB_BRANCH
-    }
-    response = requests.put(url, json=data, headers={
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    })
-    if response.status_code in [201, 200]:
-        st.write(f"Created {file_name} in {input_directory_in_github}.")
-    else:
-        st.error(f"Failed to create directory. Response: {response.status_code}, {response.text}")
+        return  # Silently skip in case of any error
 
 # Function to delete a file in the GitHub repository
 def delete_file_in_github(file_name, sha):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
-    url = f"{GITHUB_API_URL}{file_name}"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     data = {
         "message": f"Delete {file_name}",
         "sha": sha,
@@ -77,9 +52,9 @@ def delete_file_in_github(file_name, sha):
 
 # Function to upload the file to GitHub
 def upload_file_to_github(file_name, file_content, sha=None):
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
-    commit_message = f"Upload {file_name}"  # Commit message
+    commit_message = f"Upload {file_name}"
 
     data = {
         "message": commit_message,
@@ -90,8 +65,6 @@ def upload_file_to_github(file_name, file_content, sha=None):
     # If the file already exists, include the SHA to update it
     if sha:
         data["sha"] = sha
-
-    url = f"{GITHUB_API_URL}{file_name}"  # GitHub API URL for the file
 
     # Send the request to upload the file to GitHub
     response = requests.put(url, json=data, headers={
@@ -111,8 +84,8 @@ def display_token_details():
     # Read the CSV file
     df = pd.read_csv(csv_file_path)
 
-    # Get the last row of the dataframe
-    last_row = df.iloc[-1]
+    # Get the first row of the dataframe (changed from last row to first row)
+    first_row = df.iloc[0]
 
     # Extract the required parameters
     required_parameters = [
@@ -121,14 +94,15 @@ def display_token_details():
         "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
     ]
 
-    parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+    parameters = {param: first_row[param] for param in required_parameters if param in first_row}
 
     # Display content in Streamlit
     st.write("### Token Information:")
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
+
 # Streamlit Page Layout
-st.title("Upload and Process Your PNG File")
+st.title("Scan Your Releafs' Token")
 
 # Create two columns: left for the image, right for the file upload and info
 col1, col2 = st.columns([1, 2])
@@ -142,7 +116,6 @@ with col2:
         st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
 
         # Clear the input directory before uploading a new file
-        st.write("Clearing input directory...")
         clear_input_directory()
 
         file_name = uploaded_file.name
