@@ -15,6 +15,18 @@ input_directory_in_github = "decryption/input/"
 process_directory_in_github = "decryption/process/"
 csv_file_path = 'process/merged_data_with_metadata.csv'
 
+# Function to check if a file exists and get its SHA (needed for updating existing files)
+def get_file_sha(directory, file_name):
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{directory}{file_name}"
+    response = requests.get(GITHUB_API_URL, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+    if response.status_code == 200:
+        file_data = response.json()
+        return file_data.get('sha')  # Return the SHA of the file if it exists
+    return None  # Return None if the file doesn't exist
+
 # Function to silently delete all files in the specified GitHub directory
 def clear_directory(directory):
     GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{directory}"
@@ -70,9 +82,10 @@ def clear_and_recreate_directories():
     recreate_directory("decryption/process")
 
 # Function to upload the file to GitHub
-def upload_file_to_github(file_name, file_content, sha=None):
-    directory = file_name.split('/')[0]  # Assuming the directory is the first part of the file path
-    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{directory}"
+def upload_file_to_github(file_name, file_content):
+    directory = "/".join(file_name.split('/')[:-1])  # Extract the directory from the file name
+    file_sha = get_file_sha(directory, file_name.split('/')[-1])  # Get the SHA if the file exists
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_name}"
     encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
     commit_message = f"Upload {file_name}"  # Commit message
 
@@ -83,13 +96,11 @@ def upload_file_to_github(file_name, file_content, sha=None):
     }
 
     # If the file already exists, include the SHA to update it
-    if sha:
-        data["sha"] = sha
-
-    url = f"{GITHUB_API_URL}/{file_name}"  # GitHub API URL for the file
+    if file_sha:
+        data["sha"] = file_sha
 
     # Send the request to upload the file to GitHub
-    response = requests.put(url, json=data, headers={
+    response = requests.put(GITHUB_API_URL, json=data, headers={
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     })
@@ -139,11 +150,11 @@ with col2:
         # Clear and recreate directories before uploading a new file
         clear_and_recreate_directories()
 
-        file_name = uploaded_file.name
+        file_name = f"decryption/input/{uploaded_file.name}"
         file_content = uploaded_file.getvalue()  # Get the content of the file
 
         # Upload the file to GitHub
-        response = upload_file_to_github(f"decryption/input/{file_name}", file_content)
+        response = upload_file_to_github(file_name, file_content)
 
         if response.status_code in [201, 200]:
             st.success(f"File {file_name} uploaded/updated successfully!")
