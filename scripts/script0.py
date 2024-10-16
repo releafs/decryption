@@ -60,15 +60,12 @@ def upload_file_to_github(file_name, file_content, sha=None):
 
     return response
 
-def wait_for_process_completion(retries=30, initial_delay=60, subsequent_delay=30):
+# Function to wait for the workflow completion by polling for the presence of the processed result
+def wait_for_process_completion(retries=20, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
-
-    # Initial wait for 1 minute before the first attempt
-    st.write(f"Waiting for {initial_delay} seconds before the first attempt...")
-    time.sleep(initial_delay)
 
     for attempt in range(retries):
         response = requests.get(GITHUB_PROCESS_RESULT_URL, headers=headers)
@@ -77,14 +74,11 @@ def wait_for_process_completion(retries=30, initial_delay=60, subsequent_delay=3
             content = base64.b64decode(file_info["content"]).decode("utf-8")
             return content
         else:
-            st.write(f"Processed result not found. Retrying {attempt+1}/{retries} after {subsequent_delay} seconds...")
-
-        # Wait for 30 seconds before the next attempt
-        time.sleep(subsequent_delay)
+            st.write(f"Processed result not found. Retrying {attempt+1}/{retries}...")
+            time.sleep(delay)
 
     st.error("Processed result could not be fetched after multiple retries.")
     return None
-
 
 # Function to display the selected parameters in a two-column table
 def display_selected_parameters(csv_data):
