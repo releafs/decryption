@@ -1,17 +1,21 @@
-Check Script1.py
-
 import os
 import csv
 from PIL import Image
 import numpy as np
 
-# Get the directory of the current script
+# Get the directory of the current script and correct paths relative to the root
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))  # Adjusted to point to the repository root
+UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'decryption', 'input')  # Corrected path to the input folder
+OUTPUT_FOLDER = os.path.join(ROOT_DIR, 'process')
+DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
 
-# Corrected directory paths
-UPLOAD_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, 'decryption', 'input'))    # Where PNGs are uploaded (ROOT_DIR, 'decryption', 'input')
-OUTPUT_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'process'))  # Where the output CSV will be saved
-DATA_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'data')) 
+# Debugging statements to verify directory paths
+print(f"SCRIPT_DIR: {SCRIPT_DIR}")
+print(f"ROOT_DIR: {ROOT_DIR}")
+print(f"UPLOAD_FOLDER: {UPLOAD_FOLDER}")
+print(f"OUTPUT_FOLDER: {OUTPUT_FOLDER}")
+print(f"DATA_FOLDER: {DATA_FOLDER}")
 
 # Ensure upload and output directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -152,8 +156,10 @@ def main():
     dot_positions = load_dot_positions()
     project_type_map, impact_unit_map = load_mappings()
 
-    # Check for uploaded PNG files in the input folder
+    # Debugging statements to verify files in the upload folder
+    print(f"Looking for PNG files in: {UPLOAD_FOLDER}")
     uploaded_files = [file for file in os.listdir(UPLOAD_FOLDER) if file.endswith('.png')]
+    print(f"Found PNG files: {uploaded_files}")
 
     if not uploaded_files:
         print(f"No PNG files found in {UPLOAD_FOLDER}.")
@@ -186,8 +192,9 @@ def main():
     # Save decrypted data locally
     if decrypted_data:
         save_to_local_file(decrypted_data)
+    else:
+        print("No data decrypted.")
 
 # Run the main function
 if __name__ == '__main__':
     main()
-
