@@ -22,12 +22,21 @@ CREATION_TSV_URL = 'https://raw.githubusercontent.com/releafs/decryption/main/da
 
 # Define the directories
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
-INPUT_DIR = os.path.join(ROOT_DIR, 'decryption', 'input')
-PROCESS_DIR = os.path.join(ROOT_DIR, 'decryption', 'process')
+ROOT_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
+
+# Adjusted directory paths
+INPUT_DIR = os.path.join(ROOT_DIR, 'decryption', 'input')  # Adjusted to match script1.py
+PROCESS_DIR = os.path.join(ROOT_DIR, 'process')
+
+# Check the paths
+print(f"SCRIPT_DIR: {SCRIPT_DIR}")
+print(f"ROOT_DIR: {ROOT_DIR}")
+print(f"INPUT_DIR: {INPUT_DIR}")
+print(f"PROCESS_DIR: {PROCESS_DIR}")
 
 # Ensure the process directory exists
 os.makedirs(PROCESS_DIR, exist_ok=True)
+os.makedirs(INPUT_DIR, exist_ok=True)  # Ensure input directory exists
 
 # Load DOT_COLORS and TOTAL_DOTS from the 'inventory.csv' file
 def fetch_parameters_from_inventory(inventory_csv_url):
