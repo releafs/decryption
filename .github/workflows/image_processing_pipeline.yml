@@ -88,7 +88,8 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
-        path: process/merged_data_with_metadata.csv
+        path: process/merged_data_with_metadata.csv  # Ensure the path is correct here
+
 
     # Step 11: Run script4.py to delete PNG files and input directory after processing (Move cleanup here)
     - name: Delete input files and directory after processing
