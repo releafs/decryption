@@ -42,30 +42,30 @@ jobs:
       run: |
         pip install -r requirements.txt
 
-    # Step 5: Run script4.py to delete all files and the input directory
+    # Step 5: Run process.py to delete and recreate the 'process' directory
+    - name: Reset process directory
+      run: python scripts/process.py  # This script will delete and recreate the process directory
+
+    # Step 6: Run script4.py to delete all files and the input directory
     - name: Delete input files and directory
       run: python scripts/script4.py  # This runs your updated script to delete all files and the input directory
 
-    # Step 6: Ensure the input directory exists before running any scripts
+    # Step 7: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
       run: mkdir -p decryption/input  # Create the input directory if it doesn't exist
 
-    # Step 7: Debugging - List files in input directory to confirm it's empty
+    # Step 8: Debugging - List files in input directory to confirm it's empty
     - name: Check input directory for PNGs after deletion
       run: |
         echo "Checking input directory for PNGs after deletion:"
         ls -la decryption/input/
 
-    # Step 8: Run the main processing scripts (No delay)
+    # Step 9: Run the main processing scripts (No delay)
     - name: Run processing scripts
       run: |
         python scripts/script1.py
         python scripts/script2.py
         python scripts/script3.py
-
-    # Step 9: Run process.py to delete and recreate the 'process' directory
-    - name: Reset process directory
-      run: python scripts/process.py  # This script will delete and recreate the process directory
 
     # Step 10: Verify if the output file exists
     - name: Verify output file exists
