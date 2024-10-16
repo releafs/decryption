@@ -59,19 +59,21 @@ jobs:
         python scripts/script2.py
         python scripts/script3.py
 
-    # Step 8: Check for output file and handle gracefully if missing
+        # Step 8: Check for output file and handle gracefully if missing
     - name: Verify if the output file exists
       id: check-output
       run: |
         if [ -f "process/merged_data_with_metadata.csv" ]; then
           echo "Output file found."
+          echo "file_exists=true" >> $GITHUB_ENV
         else
           echo "Output file not found."
-          exit 0  # Exit gracefully if the file is not present
+          echo "file_exists=false" >> $GITHUB_ENV
+        fi
 
     # Step 9: Proceed with Git operations only if the output file exists
     - name: Pull, commit, and push processed result
-      if: steps.check-output.outputs.exit_status != '0'
+      if: env.file_exists == 'true'
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
@@ -84,11 +86,12 @@ jobs:
 
     # Step 10: Upload the artifact with a unique name including commit SHA (if the file exists)
     - name: Upload processed result as artifact
-      if: steps.check-output.outputs.exit_status != '0'
+      if: env.file_exists == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
         path: process/merged_data_with_metadata.csv
+
 
     # Step 11: Clean up process directory (Optional if needed)
     - name: Clean up process directory
