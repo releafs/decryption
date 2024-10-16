@@ -74,7 +74,6 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git rm --cached process/merged_data_with_metadata.csv || true  # Remove cached file to avoid conflicts
         git stash  # Stash any local changes to avoid conflicts
         git pull origin main --rebase || true  # Pull the latest changes from the remote repository
         git stash pop || true  # Apply the stashed changes
@@ -82,17 +81,17 @@ jobs:
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         git push
 
-    # Step 10: Upload the artifact with a unique name including commit SHA
+    # Step 10: Upload the artifact with the correct file path
     - name: Upload processed result as artifact
       uses: actions/upload-artifact@v4
       with:
         name: processed-results-${{ github.sha }}
-        path: process/merged_data_with_metadata.csv
+        path: process/merged_data_with_metadata.csv  # Ensure the correct file path
 
-    # Step 11: Clean up process directory (Optional if needed)
-    - name: Clean up process directory
-      run: rm -rf process/*
-
-    # Step 12: Run script4.py to delete PNG files and input directory after processing
+    # Step 11: Run script4.py to delete PNG files and input directory after processing (Move cleanup here)
     - name: Delete input files and directory after processing
       run: python scripts/script4.py  # This deletes all PNG files and the input directory after processing
+
+    # Step 12: Clean up process directory (Optional if needed)
+    - name: Clean up process directory
+      run: rm -rf process/*
