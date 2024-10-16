@@ -9,11 +9,14 @@ import pandas as pd
 
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
+GITHUB_BRANCH = "main"  # Change if you're using a different branch
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
-# GitHub API URLs
-WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
-ARTIFACTS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{{run_id}}/artifacts"
+# Define the input directory in your GitHub repository
+input_directory_in_github = "decryption/input/"
+
+# GitHub API URL to upload files
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}"
 
 # List of parameters to extract from the CSV
 required_parameters = [
@@ -21,6 +24,44 @@ required_parameters = [
     "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
     "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
 ]
+
+# Function to check if the file exists in the GitHub repository
+def check_if_file_exists(file_name):
+    url = f"{GITHUB_API_URL}{file_name}"
+    response = requests.get(url, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    if response.status_code == 200:
+        return response.json().get('sha')  # Return the SHA of the existing file
+    return None
+
+# Function to upload the file to GitHub
+def upload_file_to_github(file_name, file_content, sha=None):
+    # Prepare the data for the GitHub API request
+    encoded_content = base64.b64encode(file_content).decode("utf-8")
+    commit_message = f"Upload {file_name}"
+
+    data = {
+        "message": commit_message,
+        "content": encoded_content,
+        "branch": GITHUB_BRANCH
+    }
+
+    # If the file exists, add the SHA to update it
+    if sha:
+        data["sha"] = sha
+
+    url = f"{GITHUB_API_URL}{file_name}"
+
+    # Send the request to upload the file
+    response = requests.put(url, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+
+    return response
 
 # Function to get the latest workflow run ID
 def get_latest_workflow_run_id():
@@ -30,6 +71,7 @@ def get_latest_workflow_run_id():
     }
 
     # Get the list of workflow runs
+    WORKFLOW_RUNS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs"
     response = requests.get(WORKFLOW_RUNS_URL, headers=headers)
     if response.status_code == 200:
         workflow_runs = response.json()["workflow_runs"]
@@ -39,16 +81,17 @@ def get_latest_workflow_run_id():
         st.error(f"Failed to fetch workflow runs: {response.text}")
         return None
 
-# Function to fetch the latest artifact with retry mechanism
+# Function to fetch the artifact
 def fetch_artifact(run_id, retries=5, delay=10):
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json"
     }
 
-    # Retry fetching the artifact if it’s not available yet
+    ARTIFACTS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/runs/{run_id}/artifacts"
+
     for _ in range(retries):
-        response = requests.get(ARTIFACTS_URL.format(run_id=run_id), headers=headers)
+        response = requests.get(ARTIFACTS_URL, headers=headers)
         if response.status_code == 200:
             artifacts = response.json()["artifacts"]
             if not artifacts:
@@ -64,6 +107,9 @@ def fetch_artifact(run_id, retries=5, delay=10):
                                 for file in z.namelist():
                                     if file.endswith("merged_data_with_metadata.csv"):
                                         return z.read(file).decode("utf-8")
+                        else:
+                            st.error(f"Failed to download artifact: {artifact_response.text}")
+                            return None
         else:
             st.error(f"Failed to fetch artifact: {response.text}")
             return None
@@ -110,38 +156,34 @@ if uploaded_file is not None:
     with col1:
         st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
 
-    # Define the correct directory to save the uploaded file
-    input_directory = os.path.join(os.getcwd(), 'decryption', 'input')
+    # Get the file content
+    file_name = uploaded_file.name
+    file_content = uploaded_file.getvalue()
 
-    # Recreate the input directory each time (delete if it exists, then recreate)
-    if os.path.exists(input_directory):
-        # Remove the old directory and its contents
-        import shutil
-        shutil.rmtree(input_directory)
-    
-    # Create a fresh input directory
-    os.makedirs(input_directory)
+    # Check if the file already exists in the repository
+    sha = check_if_file_exists(file_name)
 
-    # Save the uploaded file to 'decryption/input/' directory
-    file_path = os.path.join(input_directory, uploaded_file.name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    # Upload the file to GitHub
+    response = upload_file_to_github(file_name, file_content, sha)
 
-    st.write("File uploaded successfully! Processing...")
+    if response.status_code == 201 or response.status_code == 200:
+        st.write("File uploaded successfully! Processing...")
 
-    # Dynamically get the latest workflow run ID
-    run_id = get_latest_workflow_run_id()
+        # Wait for the workflow to process and fetch the artifact
+        run_id = get_latest_workflow_run_id()
 
-    if run_id:
-        result = None
-        with st.spinner("Waiting for the processed artifact..."):
-            result = fetch_artifact(run_id)
+        if run_id:
+            result = None
+            with st.spinner("Waiting for the processed artifact..."):
+                result = fetch_artifact(run_id)
 
-        if result:
-            st.success("Processing complete! Displaying the result below:")
-            with col2:
-                display_selected_parameters(result)
+            if result:
+                st.success("Processing complete! Displaying the result below:")
+                with col2:
+                    display_selected_parameters(result)
+            else:
+                st.error("Could not retrieve the processed result.")
         else:
-            st.error("Could not retrieve the processed result.")
+            st.error("Failed to retrieve workflow run ID.")
     else:
-        st.error("Failed to retrieve workflow run ID.")
+        st.error(f"Failed to upload {file_name}. Response: {response.text}")
