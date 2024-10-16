@@ -44,7 +44,7 @@ jobs:
       run: python scripts/script1.py
 
     # Step 7: Run script2.py
-      - name: Run script2.py
+    - name: Run script2.py
       run: python scripts/script2.py
 
     # Step 8: Run script3.py
@@ -81,7 +81,6 @@ jobs:
         else
           git commit -m "Add processed result"
           git push
-        fi
 
     # Step 12: Upload the artifact (merged_data_with_metadata.csv) with overwrite
     - name: Upload processed result as artifact
