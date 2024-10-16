@@ -7,7 +7,7 @@ import numpy as np
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Corrected directory paths
-UPLOAD_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'input'))    # Where PNGs are uploaded
+UPLOAD_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, 'decryption', 'input'))    # Where PNGs are uploaded (ROOT_DIR, 'decryption', 'input')
 OUTPUT_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'process'))  # Where the output CSV will be saved
 DATA_FOLDER = os.path.abspath(os.path.join(SCRIPT_DIR, '..', 'data')) 
 
