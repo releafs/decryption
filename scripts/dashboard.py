@@ -125,25 +125,14 @@ def display_token_details():
 # Streamlit Page Layout
 st.title("Releafs Token Manager")
 
-# Create two columns for the upper part
-col1, col2 = st.columns([1, 2])
+# Add the message at the top
+st.write("""
+    Each token represents a climate action impact on the ground. 
+    When you scan, you will find out the status of your token. 
+    Thanks for holding a Releafs token.
+""")
 
-# Column 1: Display uploaded image
-with col1:
-    if 'uploaded_file' in st.session_state:
-        st.image(st.session_state.uploaded_file, caption="Uploaded Image", width=150)
-    else:
-        st.write("No image uploaded yet.")
-
-# Column 2: Display Releafs Token Manager text
-with col2:
-    st.write("""
-        Each token represents a climate action impact on the ground. 
-        When you scan, you will find out the status of your token. 
-        Thanks for holding a Releafs token.
-    """)
-
-# Create tabs for Upload and Display below the columns
+# Create tabs for Upload and Display
 tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 
 # Upload Image Tab
@@ -151,23 +140,22 @@ with tab1:
     uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
 
     if uploaded_file is not None:
-        st.session_state.uploaded_file = uploaded_file  # Store the uploaded file in session state
         st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-        
-        clear_input_directory()  # Clear the directory without extra messages
+        st.write("Clearing input directory...")
+        clear_input_directory()
         file_name = uploaded_file.name
         file_content = uploaded_file.getvalue()
 
         response = upload_file_to_github(file_name, file_content)
 
         if response.status_code in [201, 200]:
-            st.success(f"File {file_name} uploaded/updated successfully!")  # Only show this message
+            st.success(f"File {file_name} uploaded/updated successfully!")
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
 
 # Display Token Details Tab
 with tab2:
-    if st.button("Show token detail"):
-        with st.spinner("Showing the token details..."):
-            time.sleep(20)  # Adjust this based on your processing time
+    if st.button("Fetch Latest Token Details"):
+        with st.spinner("Fetching latest token details..."):
+            time.sleep(60)  # Adjust this based on your processing time
             display_token_details()
