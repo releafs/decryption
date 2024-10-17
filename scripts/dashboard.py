@@ -169,5 +169,5 @@ with tab1:
 with tab2:
     if st.button("Fetch Latest Token Details"):
         with st.spinner("Fetching latest token details..."):
-            time.sleep(60)  # Adjust this based on your processing time
+            time.sleep(20)  # Adjust this based on your processing time
             display_token_details()
