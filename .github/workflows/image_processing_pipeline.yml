@@ -140,6 +140,7 @@ jobs:
         path: process/merged_data_with_metadata.csv
 
     # Step 12: Run script4.py to delete input files after processing
+    # Step 12: Run script4.py to delete input files after processing
     - name: Delete input files and directory after processing
       run: |
         if [ -f "process/merged_data_with_metadata.csv" ]; then
@@ -148,6 +149,8 @@ jobs:
           echo "Input files deleted."
         else
           echo "Skipping deletion: output file not found."
+        fi  # <-- You must close the 'if' block with 'fi'
+
     
     # Step 13: Run script_display.py to fetch and display token details
     - name: Run display token details
