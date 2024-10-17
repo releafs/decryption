@@ -95,12 +95,22 @@ jobs:
         if [ -n "$(git status --porcelain)" ]; then
           echo "Changes detected, stashing changes..."
           git stash
+          echo "Pulling the latest changes with rebase..."
           git pull origin main --rebase
           git stash pop || true
-          echo "Stashed changes applied."
+          echo "Stashed changes applied after pull."
         else
           echo "No local changes detected, pulling latest changes."
           git pull origin main --rebase
+        fi
+
+        # Debug: Verify if the files are updated and available
+        echo "Verifying if the processed files exist:"
+        if [ -f "process/merged_data_with_metadata.csv" ]; then
+          echo "'merged_data_with_metadata.csv' found."
+        else
+          echo "Error: 'merged_data_with_metadata.csv' not found!"
+          exit 1
         fi
 
         # Add and commit changes if there are any
@@ -108,17 +118,18 @@ jobs:
         if git diff --cached --quiet; then
           echo "No changes to commit."
         else
-          echo "Changes detected, committing..."
+          echo "Changes detected, committing the processed result..."
           git commit -m "Add processed result for ${{ github.sha }}"
         fi
         
-        # Push changes to the main branch, if fails, rebase and push again
+        # Push changes to the main branch, retry with rebase if push fails
         git push || (
           echo "Push failed, attempting rebase..."
           git pull origin main --rebase
           git push --force
           echo "Push successful after rebase."
         )
+
 
     # Step 11: Upload the processed result as an artifact
     - name: Upload processed result as artifact
