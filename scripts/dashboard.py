@@ -125,20 +125,12 @@ def display_token_details():
 # Streamlit Page Layout
 st.title("Scan Your Releafs' Token")
 
-# Top layout: two columns, left for the image (if uploaded), right for the message
-col1, col2 = st.columns([1, 3])
-
-with col1:
-    # Placeholder for uploaded image
-    uploaded_image = None
-
-# Message section in the right column
-with col2:
-    st.write("""
-        Each token represents a climate action impact on the ground. 
-        When you scan, you will find out the status of your token. 
-        Thanks for holding a Releafs token.
-    """)
+# Add the message at the top
+st.write("""
+    Each token represents a climate action impact on the ground. 
+    When you scan, you will find out the status of your token. 
+    Thanks for holding a Releafs token.
+""")
 
 # Create tabs for Upload and Display
 tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
@@ -148,10 +140,6 @@ with tab1:
     uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
 
     if uploaded_file is not None:
-        # Display the uploaded image in the left column
-        with col1:
-            st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-
         st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
         st.write("Clearing input directory...")
         clear_input_directory()
@@ -164,6 +152,13 @@ with tab1:
             st.success(f"File {file_name} uploaded/updated successfully!")
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+
+        # Display uploaded image on the top left next to the text
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+        with col2:
+            st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
 
 # Display Token Details Tab
 with tab2:
