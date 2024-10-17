@@ -9,7 +9,6 @@ import base64
 GITHUB_REPO = "releafs/decryption"
 GITHUB_BRANCH = "main"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-CSV_URL = "https://raw.githubusercontent.com/releafs/decryption/main/process/merged_data_with_metadata.csv"  # Raw URL for the CSV
 
 input_directory_in_github = "decryption/input/"
 
@@ -87,45 +86,41 @@ def upload_file_to_github(file_name, file_content):
     })
     return response
 
-# Function to display token details using the direct URL of the CSV
+# Function to display token details using the fetched CSV
 def display_token_details():
-    try:
-        # Fetch the CSV data from the direct URL
-        response = requests.get(CSV_URL)
-        
-        if response.status_code == 200:
-            df = pd.read_csv(CSV_URL)
-
-            if df.empty:
-                st.error("CSV file is empty.")
-                return
-
-            last_row = df.iloc[-1]
-            parameters = {
-                "Latitude": last_row["Latitude"],
-                "Longitude": last_row["Longitude"],
-                "Type of Token": last_row["Type of Token"],
-                "Description": last_row["description"],
-                "External URL": last_row["external_url"],
-                "Starting Project": last_row["Starting Project"],
-                "Unit": last_row["Unit"],
-                "Deleverable": last_row["Deleverable"],
-                "Years Duration": last_row["Years_Duration"],
-                "Impact Type": last_row["Impact Type"],
-                "SDGs": last_row["SDGs"],
-                "Implementer Partner": last_row["Implementer Partner"],
-                "Internal Verification": last_row["Internal Verification"],
-                "Local Verification": last_row["Local Verification"],
-                "Imv Document": last_row["Imv_Document"]
-            }
-
-            st.write("### Token Information:")
-            st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
-        else:
-            st.error(f"Failed to fetch CSV. HTTP Status: {response.status_code}")
+    csv_file_path = 'process/merged_data_with_metadata.csv'
     
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+    if not os.path.exists(csv_file_path):
+        st.error(f"CSV file not found at: {csv_file_path}")
+        return
+
+    df = pd.read_csv(csv_file_path)
+
+    if df.empty:
+        st.error("CSV file is empty.")
+        return
+
+    last_row = df.iloc[-1]
+    parameters = {
+        "Latitude": last_row["Latitude"],
+        "Longitude": last_row["Longitude"],
+        "Type of Token": last_row["Type of Token"],
+        "Description": last_row["description"],
+        "External URL": last_row["external_url"],
+        "Starting Project": last_row["Starting Project"],
+        "Unit": last_row["Unit"],
+        "Deleverable": last_row["Deleverable"],
+        "Years Duration": last_row["Years_Duration"],
+        "Impact Type": last_row["Impact Type"],
+        "SDGs": last_row["SDGs"],
+        "Implementer Partner": last_row["Implementer Partner"],
+        "Internal Verification": last_row["Internal Verification"],
+        "Local Verification": last_row["Local Verification"],
+        "Imv Document": last_row["Imv_Document"]
+    }
+
+    st.write("### Token Information:")
+    st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
 st.title("Scan Your Releafs' Token")
@@ -158,16 +153,9 @@ with tab1:
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
 
-        # Display uploaded image on the top left next to the text
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-        with col2:
-            st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-
 # Display Token Details Tab
 with tab2:
     if st.button("Show Token Details"):
-        with st.spinner("Fetching Your Token Details..."):
+        with st.spinner("Showing Your Token Details..."):
             time.sleep(60)  # Adjust this based on your processing time
             display_token_details()
