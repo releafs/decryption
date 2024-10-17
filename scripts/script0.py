@@ -174,5 +174,5 @@ if uploaded_file is not None:
 st.write("## Token Details")
 if st.button("Fetch Token Details"):
     st.write("Fetching token details after processing...")
-    time.sleep(80)  # Adjust delay if necessary
+    time.sleep(30)  # Adjust delay if necessary
     display_token_details()
