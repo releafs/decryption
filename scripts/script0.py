@@ -202,5 +202,5 @@ st.write("## Token Details")
 if st.button("Fetch Token Details"):
     # Simulate delay for processing to be completed
     st.write("Fetching token details after processing...")
-    time.sleep(60)  # Assuming the fetch happens after 1 minute (adjust as needed)
+    time.sleep(80)  # Assuming the fetch happens after 1 minute (adjust as needed)
     display_token_details()
