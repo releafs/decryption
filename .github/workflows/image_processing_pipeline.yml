@@ -83,7 +83,12 @@ jobs:
     git stash pop || true  # Apply stashed changes
     git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
     git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
-    git push --force  # Force push to overwrite the remote branch
+    
+    # Try pushing normally
+    git push || (
+      # If push fails, pull the latest changes and rebase, then push again
+      git pull origin main --rebase && git push
+    )
 
 
     # Step 11: Upload the artifact with a unique name including commit SHA
