@@ -8,14 +8,7 @@ import pandas as pd
 # Define GitHub repository details
 GITHUB_REPO = "releafs/decryption"
 GITHUB_BRANCH = "main"
-
-# Ensure GITHUB_TOKEN is available
-try:
-    GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
-    st.write("GitHub token loaded successfully.")
-except KeyError:
-    st.error("GITHUB_TOKEN not found in Streamlit secrets.")
-    st.stop()  # Stop execution if the token is not found
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 input_directory_in_github = "decryption/input/"
 csv_file_path = 'process/merged_data_with_metadata.csv'
