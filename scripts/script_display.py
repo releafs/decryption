@@ -18,7 +18,7 @@ def display_token_details():
     else:
         print(f"CSV file found at {os.path.abspath(csv_file_path)}")
 
-    # Fetch CSV data
+    # Fetch CSV data without caching
     df = pd.read_csv(csv_file_path)
     
     if df.empty:
@@ -47,7 +47,7 @@ def display_token_details():
     for param, value in parameters.items():
         print(f"{param}: {value}")
 
-    # Display content in Streamlit (optional)
+    # Display content in Streamlit
     st.write("### Token Information:")
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
