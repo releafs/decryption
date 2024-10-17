@@ -64,3 +64,12 @@ if st.button("Fetch Latest"):
 
     # Fetch and display the latest token details
     display_token_details()
+
+# Embed the other Streamlit app using an iframe
+st.write("## Upload and Process Your Token:")
+st.components.v1.html(
+    """
+    <iframe src="https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/" width="100%" height="800" frameborder="0"></iframe>
+    """,
+    height=800,
+)
