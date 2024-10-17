@@ -125,17 +125,14 @@ def display_token_details():
 # Streamlit Page Layout
 st.title("Scan Your Releafs' Token")
 
-# Create two columns: one for the image and one for the text
-col1, col2 = st.columns([1, 2])
+# Top layout: two columns, left for the image (if uploaded), right for the message
+col1, col2 = st.columns([1, 3])
 
-# Left Column for the Image Upload
 with col1:
-    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+    # Placeholder for uploaded image
+    uploaded_image = None
 
-    if uploaded_file is not None:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-
-# Right Column for the Introductory Text
+# Message section in the right column
 with col2:
     st.write("""
         Each token represents a climate action impact on the ground. 
@@ -148,7 +145,13 @@ tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 
 # Upload Image Tab
 with tab1:
+    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+
     if uploaded_file is not None:
+        # Display the uploaded image in the left column
+        with col1:
+            st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+
         st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
         st.write("Clearing input directory...")
         clear_input_directory()
