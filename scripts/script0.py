@@ -138,7 +138,7 @@ def display_token_details():
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
-st.title("Upload and Process Your PNG File")
+st.title("Scan Your Releafs' Token")
 
 # Create two columns: left for the image, right for the file upload and info
 col1, col2 = st.columns([1, 2])
