@@ -106,62 +106,36 @@ def upload_file_to_github(file_name, file_content, sha=None):
 # Function to fetch the artifact and display token details
 # Function to fetch the artifact and display token details
 def display_token_details():
-    # GitHub API URL for fetching artifacts
-    GITHUB_API_ARTIFACT_URL = f"https://api.github.com/repos/{GITHUB_REPO}/actions/artifacts"
-    
-    # Step 1: Fetch the artifact list
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-    
-    response = requests.get(GITHUB_API_ARTIFACT_URL, headers=headers)
+    # Path to the CSV file
+    extracted_csv_file = 'process/merged_data_with_metadata.csv'
 
-    if response.status_code == 200:
-        artifacts = response.json().get("artifacts", [])
-        if not artifacts:
-            st.error("No artifacts found.")
-            return
-        
-        # Step 2: Get the latest artifact
-        latest_artifact = artifacts[0]  # Assuming the first artifact is the latest
-        artifact_download_url = latest_artifact["archive_download_url"]
-        
-        # Step 3: Download the artifact
-        artifact_response = requests.get(artifact_download_url, headers=headers)
-        if artifact_response.status_code != 200:
-            st.error(f"Failed to download artifact. Status code: {artifact_response.status_code}")
-            return
-        
-        # Step 4: Extract the artifact (assumed to be a ZIP file)
-        zip_file = zipfile.ZipFile(io.BytesIO(artifact_response.content))
-        zip_file.extractall()  # Extracting the files
-        
-        # Step 5: Look for the CSV file in the extracted artifact
-        extracted_csv_file = 'process/merged_data_with_metadata.csv'  # Ensure this is the correct path
-        
-        if not os.path.exists(extracted_csv_file):
-            st.error(f"CSV file not found in the artifact: {extracted_csv_file}")
-            return
-        
-        # Step 6: Read the CSV and display token details
-        df = pd.read_csv(extracted_csv_file)
-        last_row = df.iloc[-1]
+    # Check if the CSV file exists
+    if not os.path.exists(extracted_csv_file):
+        st.error(f"CSV file not found at: {extracted_csv_file}")
+        return
 
-        # Extract the required parameters
-        required_parameters = [
-            "Latitude", "Longitude", "Type of Token", "description", "external_url",
-            "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
-            "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
-        ]
+    # Read the CSV and display token details
+    df = pd.read_csv(extracted_csv_file)
+    if df.empty:
+        st.error("CSV file is empty.")
+        return
 
-        parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+    # Get the last row of the DataFrame
+    last_row = df.iloc[-1]
 
-        # Display content in Streamlit
-        st.write("### Token Information:")
-        st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
-    else:
-        st.error(f"Failed to fetch artifacts. Status code: {response.status_code}, {response.text}")
+    # Extract the required parameters
+    required_parameters = [
+        "Latitude", "Longitude", "Type of Token", "description", "external_url",
+        "Starting Project", "Unit", "Deleverable", "Years_Duration", "Impact Type",
+        "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
+    ]
+
+    # Create a dictionary of parameters present in the last row
+    parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+
+    # Display content in Streamlit
+    st.write("### Token Information:")
+    st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
 st.title("Upload and Process Your PNG File")
