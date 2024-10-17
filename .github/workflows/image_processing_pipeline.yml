@@ -91,17 +91,19 @@ jobs:
         echo "Git status before stashing:"
         git status
 
+        # Pull latest changes and handle potential conflicts before stashing
+        echo "Pulling the latest changes..."
+        git pull origin main --rebase || true
+
         # Check if there are changes to stash
         if [ -n "$(git status --porcelain)" ]; then
           echo "Changes detected, stashing changes..."
           git stash
-          echo "Pulling the latest changes with rebase..."
           git pull origin main --rebase
           git stash pop || true
           echo "Stashed changes applied after pull."
         else
-          echo "No local changes detected, pulling latest changes."
-          git pull origin main --rebase
+          echo "No local changes detected, continuing."
         fi
 
         # Debug: Verify if the files are updated and available
@@ -129,7 +131,6 @@ jobs:
           git push --force
           echo "Push successful after rebase."
         )
-
 
     # Step 11: Upload the processed result as an artifact
     - name: Upload processed result as artifact
