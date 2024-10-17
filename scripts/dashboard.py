@@ -167,7 +167,7 @@ with tab1:
 
 # Display Token Details Tab
 with tab2:
-    if st.button("Fetch Latest Token Details"):
-        with st.spinner("Fetching latest token details..."):
+    if st.button("Show token detail"):
+        with st.spinner("Showing the token details..."):
             time.sleep(20)  # Adjust this based on your processing time
             display_token_details()
