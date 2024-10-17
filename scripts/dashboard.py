@@ -11,7 +11,25 @@ GITHUB_BRANCH = "main"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
 input_directory_in_github = "decryption/input/"
-csv_file_path = 'process/merged_data_with_metadata.csv'
+
+# Function to create a placeholder file if the directory does not exist
+def create_placeholder_file():
+    file_name = ".gitkeep"  # Placeholder file name
+    content = base64.b64encode(b'').decode('utf-8')  # Empty file content
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
+    data = {
+        "message": "Create input directory with placeholder file",
+        "content": content,
+        "branch": GITHUB_BRANCH
+    }
+    response = requests.put(url, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+    if response.status_code in [201, 200]:
+        st.write(f"Created {file_name} in {input_directory_in_github}.")
+    else:
+        st.error(f"Failed to create placeholder file. Response: {response.status_code}, {response.text}")
 
 # Function to clear the input directory
 def clear_input_directory():
@@ -39,9 +57,23 @@ def clear_input_directory():
     else:
         st.error(f"Failed to list files in directory. Response: {response.status_code}")
 
+# Function to delete a file in the GitHub repository
+def delete_file_in_github(file_name, sha):
+    GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
+    data = {
+        "message": f"Delete {file_name}",
+        "sha": sha,
+        "branch": GITHUB_BRANCH
+    }
+    response = requests.delete(GITHUB_API_URL, json=data, headers={
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    })
+    return response
+
 # Function to upload the file to GitHub
 def upload_file_to_github(file_name, file_content):
-    encoded_content = base64.b64encode(file_content).decode("utf-8")
+    encoded_content = base64.b64encode(file_content).decode("utf-8")  # Base64 encode the file content
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{input_directory_in_github}{file_name}"
     data = {
         "message": f"Upload {file_name}",
@@ -56,6 +88,8 @@ def upload_file_to_github(file_name, file_content):
 
 # Function to display token details using the fetched CSV
 def display_token_details():
+    csv_file_path = 'process/merged_data_with_metadata.csv'
+    
     if not os.path.exists(csv_file_path):
         st.error(f"CSV file not found at: {csv_file_path}")
         return
