@@ -125,18 +125,25 @@ def display_token_details():
 # Streamlit Page Layout
 st.title("Releafs Token Manager")
 
-# Add the message at the top
-st.write("""
-    Each token represents a climate action impact on the ground. 
-    When you scan, you will find out the status of your token. 
-    Thanks for holding a Releafs token.
-""")
+# Create two columns for the upper part
+col1, col2 = st.columns([1, 2])
 
-# Display the uploaded image above the tabs
-# Display the uploaded image above the tabs with a specific width
-if 'uploaded_file' in st.session_state:
-    st.image(st.session_state.uploaded_file, caption="Uploaded Image", width=150)  # Adjust the width to your desired size
-# Create tabs for Upload and Display
+# Column 1: Display uploaded image
+with col1:
+    if 'uploaded_file' in st.session_state:
+        st.image(st.session_state.uploaded_file, caption="Uploaded Image", width=150)
+    else:
+        st.write("No image uploaded yet.")
+
+# Column 2: Display Releafs Token Manager text
+with col2:
+    st.write("""
+        Each token represents a climate action impact on the ground. 
+        When you scan, you will find out the status of your token. 
+        Thanks for holding a Releafs token.
+    """)
+
+# Create tabs for Upload and Display below the columns
 tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 
 # Upload Image Tab
