@@ -77,18 +77,25 @@ def find_metadata_by_serial(serial_number, bit_string, metadata_data):
 # Function to save the merged data to 'merged_data_with_metadata.csv'
 def save_to_csv(data):
     output_file_path = os.path.join(PROCESS_DIR, 'merged_data_with_metadata.csv')
-    # Define the headers
     if not data:
         print("No data to save.")
         return
-    headers = ['Latitude', 'Longitude', 'Serial Number', 'Impact Quantity', 'Project Type', 'Impact Unit', 'Binary Code'] + [k for k in data[0].keys() if k not in ['Latitude', 'Longitude', 'Serial Number', 'Impact Quantity', 'Project Type', 'Impact Unit', 'Binary Code']]
 
-    with open(output_file_path, mode='w', newline='', encoding='utf-8') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=headers)
-        writer.writeheader()
-        for row in data:
-            writer.writerow(row)
-    print(f"Merged data saved to {output_file_path}")
+    # Define the headers
+    headers = ['Latitude', 'Longitude', 'Serial Number', 'Impact Quantity', 'Project Type', 'Impact Unit', 'Binary Code']
+    # Add additional headers from the data
+    additional_headers = [k for k in data[0].keys() if k not in headers]
+    headers.extend(additional_headers)
+
+    try:
+        with open(output_file_path, mode='w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=headers)
+            writer.writeheader()
+            for row in data:
+                writer.writerow(row)
+        print(f"Merged data saved to {output_file_path}")
+    except Exception as e:
+        print(f"Failed to save data to {output_file_path}: {e}")
 
 # Main function to load data, match with Metadata, and save the result
 def main():
