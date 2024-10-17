@@ -152,7 +152,6 @@ with tab1:
 
     if uploaded_file is not None:
         st.session_state.uploaded_file = uploaded_file  # Store the uploaded file in session state
-        st.experimental_rerun()  # Immediately re-run the app to show the uploaded image
         # Clear input directory and upload file
         clear_input_directory()
         file_name = uploaded_file.name
@@ -164,6 +163,7 @@ with tab1:
             st.success(f"File {file_name} uploaded/updated successfully!")  # Only show this message
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+        st.experimental_rerun()  # Immediately re-run the app to show the uploaded image in place of "No image uploaded yet"
 
 # Display Token Details Tab
 with tab2:
