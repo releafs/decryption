@@ -107,38 +107,38 @@ def upload_file_to_github(file_name, file_content, sha=None):
 def display_token_details():
     # Path to the CSV file
     extracted_csv_file = 'process/merged_data_with_metadata.csv'
-
-    # Debug: Display full path and file existence status
-    abs_path = os.path.abspath(extracted_csv_file)
-    st.write(f"Debug: Full path to the CSV file: {abs_path}")
     
-    if os.path.exists(extracted_csv_file):
-        st.write("Debug: CSV file found at the specified path.")
-    else:
-        st.error(f"CSV file not found at: {abs_path}")
+    # Debug: Print the working directory and the path to the CSV file
+    print(f"Working directory: {os.getcwd()}")
+    print(f"Full path to the CSV file: {os.path.abspath(extracted_csv_file)}")
+    
+    # Check if the CSV file exists
+    if not os.path.exists(extracted_csv_file):
+        st.error(f"CSV file not found at: {extracted_csv_file}")
+        print(f"Error: CSV file not found at {os.path.abspath(extracted_csv_file)}")
         return
+    else:
+        print(f"CSV file found at {os.path.abspath(extracted_csv_file)}")
 
-    # Read the CSV and debug its contents
+    # Read the CSV and display token details
     try:
         df = pd.read_csv(extracted_csv_file)
-        st.write("Debug: CSV successfully read.")
+        print(f"CSV file read successfully. Number of rows: {len(df)}")
     except Exception as e:
-        st.error(f"Error reading CSV file: {e}")
+        st.error(f"Error reading the CSV file: {e}")
+        print(f"Error reading the CSV file: {e}")
         return
-
+    
     if df.empty:
         st.error("CSV file is empty.")
+        print("Error: CSV file is empty.")
         return
     else:
-        st.write(f"Debug: CSV contains {len(df)} rows and {len(df.columns)} columns.")
+        print(f"CSV file is not empty. Number of rows: {len(df)}")
 
     # Get the last row of the DataFrame
-    try:
-        last_row = df.iloc[-1]
-        st.write("Debug: Successfully fetched the last row of the CSV.")
-    except Exception as e:
-        st.error(f"Error fetching last row: {e}")
-        return
+    last_row = df.iloc[-1]
+    print(f"Displaying the last row of the CSV file:\n{last_row}")
 
     # Extract the required parameters
     required_parameters = [
@@ -147,15 +147,13 @@ def display_token_details():
         "SDGs", "Implementer Partner", "Internal Verification", "Local Verification", "Imv_Document"
     ]
 
-    # Debug: Show which parameters exist in the last row
-    available_params = [param for param in required_parameters if param in last_row]
-    missing_params = [param for param in required_parameters if param not in last_row]
-    
-    st.write(f"Debug: Available parameters in the last row: {available_params}")
-    st.write(f"Debug: Missing parameters in the last row: {missing_params}")
-
     # Create a dictionary of parameters present in the last row
-    parameters = {param: last_row[param] for param in available_params}
+    parameters = {param: last_row[param] for param in required_parameters if param in last_row}
+    
+    # Debug: Print the extracted parameters
+    print("Extracted parameters from the last row:")
+    for param, value in parameters.items():
+        print(f"{param}: {value}")
 
     # Display content in Streamlit
     st.write("### Token Information:")
