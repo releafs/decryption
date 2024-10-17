@@ -53,7 +53,7 @@ def display_token_details():
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
-st.title("Fetch Latest Releafs Token Details")
+st.title("Main App with Embedded Streamlit App")
 
 # Add a "Fetch Latest" button
 if st.button("Fetch Latest"):
@@ -61,20 +61,17 @@ if st.button("Fetch Latest"):
     # Wait for 60 seconds to ensure the latest processing is done
     with st.spinner('Waiting for the backend process to complete (60 seconds)...'):
         time.sleep(60)  # You can adjust the sleep time based on your process duration
-
-    # Fetch and display the latest token details
     display_token_details()
 
 # Embed the other Streamlit app using an iframe
-st.write("## Upload and Process Your Token:")
-st.components.v1.html(
+st.markdown(
     """
-    <iframe src="https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/" width="100%" height="800" frameborder="0"></iframe>
+    <iframe 
+        src="https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/" 
+        width="700" 
+        height="600" 
+        style="border:none;">
+    </iframe>
     """,
-    height=800,
+    unsafe_allow_html=True
 )
-
-# Optionally, add a button to open the other app in a new tab
-if st.button("Open Upload and Process Your Token in New Tab"):
-    js = "window.open('https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/', '_blank')"
-    st.components.v1.html(f"<script>{js}</script>")
