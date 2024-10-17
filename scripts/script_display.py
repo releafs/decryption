@@ -65,6 +65,16 @@ if st.button("Fetch Latest"):
     # Fetch and display the latest token details
     display_token_details()
 
-# Instead of embedding, provide a link to the other app
+# Embed the other Streamlit app using an iframe
 st.write("## Upload and Process Your Token:")
-st.write("[Open Token Upload and Processing App](https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/)")
+st.components.v1.html(
+    """
+    <iframe src="https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/" width="100%" height="800" frameborder="0"></iframe>
+    """,
+    height=800,
+)
+
+# Optionally, add a button to open the other app in a new tab
+if st.button("Open Upload and Process Your Token in New Tab"):
+    js = "window.open('https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/', '_blank')"
+    st.components.v1.html(f"<script>{js}</script>")
