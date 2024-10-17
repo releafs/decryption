@@ -148,4 +148,10 @@ jobs:
           echo "Input files deleted."
         else
           echo "Skipping deletion: output file not found."
-        fi
+    
+    # Step 13: Run script_display.py to fetch and display token details
+    - name: Run display token details
+      run: |
+        echo "Running script_display.py to fetch and display token details..."
+        python scripts/script_display.py
+        echo "Token details displayed."
