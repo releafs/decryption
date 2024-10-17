@@ -140,12 +140,16 @@ with tab1:
     col1, col2 = st.columns([1, 2])  # Create two columns
 
     with col1:  # Left column for the image
-        st.image(None, caption="Uploaded Image", use_column_width=True)  # Placeholder for the image
+        if 'uploaded_file' in st.session_state:
+            st.image(st.session_state.uploaded_file, caption="Uploaded Image", use_column_width='auto')  # Show uploaded image
+        else:
+            st.write("No image uploaded yet.")  # Placeholder message
 
     with col2:  # Right column for the uploader
         uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
 
         if uploaded_file is not None:
+            st.session_state.uploaded_file = uploaded_file  # Store the uploaded file in session state
             st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
             st.write("Clearing input directory...")
             clear_input_directory()
@@ -156,9 +160,9 @@ with tab1:
 
             if response.status_code in [201, 200]:
                 st.success(f"File {file_name} uploaded/updated successfully!")
-                # Display the uploaded image on the left column
-                with col1:
-                    st.image(uploaded_file, caption="Uploaded Image", use_column_width='auto')  # Show uploaded image
+            else:
+                st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+
 
 # Display Token Details Tab
 with tab2:
