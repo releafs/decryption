@@ -133,9 +133,9 @@ st.write("""
 """)
 
 # Display the uploaded image above the tabs
+# Display the uploaded image above the tabs with a specific width
 if 'uploaded_file' in st.session_state:
-    st.image(st.session_state.uploaded_file, caption="Uploaded Image", use_column_width=True)  # Show uploaded image
-
+    st.image(st.session_state.uploaded_file, caption="Uploaded Image", width=150)  # Adjust the width to your desired size
 # Create tabs for Upload and Display
 tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 
