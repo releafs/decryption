@@ -123,7 +123,7 @@ def display_token_details():
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
-st.title("Releafs Token Manager")
+st.title("Scan Your Releafs' Token")
 
 # Add the message at the top
 st.write("""
@@ -155,7 +155,7 @@ with tab1:
 
 # Display Token Details Tab
 with tab2:
-    if st.button("Fetch Latest Token Details"):
-        with st.spinner("Fetching latest token details..."):
+    if st.button("Show Token Details"):
+        with st.spinner("Showing Your Token Details..."):
             time.sleep(60)  # Adjust this based on your processing time
             display_token_details()
