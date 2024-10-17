@@ -44,11 +44,15 @@ jobs:
     # Step 5: Clean process directory (clear old CSVs)
     - name: Clean process directory
       run: |
+        echo "Cleaning process directory..."
         rm -rf process/*
+        echo "Process directory cleaned."
 
     # Step 6: Ensure the input directory exists before running any scripts
     - name: Create input directory if missing
-      run: mkdir -p decryption/input
+      run: |
+        mkdir -p decryption/input
+        echo "Input directory ensured."
 
     # Step 7: Debugging - List files in input directory to confirm they're present
     - name: Check input directory for PNGs
@@ -59,18 +63,21 @@ jobs:
     # Step 8: Run the main processing scripts
     - name: Run processing scripts
       run: |
+        echo "Running script1.py..."
         python scripts/script1.py
+        echo "Running script2.py..."
         python scripts/script2.py
+        echo "Running script3.py..."
         python scripts/script3.py
 
     # Step 9: Verify if the output file exists
     - name: Verify output file exists
       run: |
         if [ ! -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Output file not found!"
+          echo "Error: Output file not found!"
           exit 1
         else
-          echo "Output file found!"
+          echo "Output file 'process/merged_data_with_metadata.csv' found!"
         fi
 
     # Step 10: Pull, resolve conflicts, commit, and push processed result
@@ -78,24 +85,39 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        
+
+        # Display current working directory and git status for debug
+        echo "Current working directory: $(pwd)"
+        echo "Git status before stashing:"
+        git status
+
         # Check if there are changes to stash
         if [ -n "$(git status --porcelain)" ]; then
+          echo "Changes detected, stashing changes..."
           git stash
           git pull origin main --rebase
           git stash pop || true
+          echo "Stashed changes applied."
         else
+          echo "No local changes detected, pulling latest changes."
           git pull origin main --rebase
         fi
-        
+
         # Add and commit changes if there are any
         git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
-        git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
+        if git diff --cached --quiet; then
+          echo "No changes to commit."
+        else
+          echo "Changes detected, committing..."
+          git commit -m "Add processed result for ${{ github.sha }}"
+        fi
         
         # Push changes to the main branch, if fails, rebase and push again
         git push || (
+          echo "Push failed, attempting rebase..."
           git pull origin main --rebase
           git push --force
+          echo "Push successful after rebase."
         )
 
     # Step 11: Upload the processed result as an artifact
@@ -109,7 +131,9 @@ jobs:
     - name: Delete input files and directory after processing
       run: |
         if [ -f "process/merged_data_with_metadata.csv" ]; then
+          echo "Deleting input files and directory..."
           python scripts/script4.py
+          echo "Input files deleted."
         else
-          echo "Skipping deletion as output file not found."
+          echo "Skipping deletion: output file not found."
         fi
