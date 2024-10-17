@@ -119,7 +119,7 @@ jobs:
         git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
         if git diff --cached --quiet; then
           echo "No changes to commit."
-        else:
+        else
           echo "Changes detected, committing the processed result..."
           git commit -m "Add processed result for ${{ github.sha }}"
         fi
@@ -140,19 +140,21 @@ jobs:
         path: process/merged_data_with_metadata.csv
 
     # Step 12: Run script4.py to delete input files after processing
+    # Step 12: Run script4.py to delete input files after processing
     - name: Delete input files and directory after processing
       run: |
         if [ -f "process/merged_data_with_metadata.csv" ]; then
           echo "Deleting input files and directory..."
           python scripts/script4.py
           echo "Input files deleted."
-        else:
+        else
           echo "Skipping deletion: output file not found."
-        fi
+        fi  # <-- You must close the 'if' block with 'fi'
 
-    # Step 13: Run script_display.py to fetch and display token details via URL
+    
+    # Step 13: Run script_display.py to fetch and display token details
     - name: Run display token details
       run: |
-        echo "Running script_display.py to fetch and display token details from URL..."
-        python scripts/script_display.py --use-url
+        echo "Running script_display.py to fetch and display token details..."
+        python scripts/script_display.py
         echo "Token details displayed."
