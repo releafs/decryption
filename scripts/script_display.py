@@ -53,7 +53,7 @@ def display_token_details():
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
-st.title("Main App with Embedded Streamlit App")
+st.title("Fetch Latest Releafs Token Details")
 
 # Add a "Fetch Latest" button
 if st.button("Fetch Latest"):
@@ -61,17 +61,6 @@ if st.button("Fetch Latest"):
     # Wait for 60 seconds to ensure the latest processing is done
     with st.spinner('Waiting for the backend process to complete (60 seconds)...'):
         time.sleep(60)  # You can adjust the sleep time based on your process duration
-    display_token_details()
 
-# Embed the other Streamlit app using an iframe
-st.markdown(
-    """
-    <iframe 
-        src="https://decryption-f8txkrxrcawear8c6srx4l.streamlit.app/" 
-        width="700" 
-        height="600" 
-        style="border:none;">
-    </iframe>
-    """,
-    unsafe_allow_html=True
-)
+    # Fetch and display the latest token details
+    display_token_details()
