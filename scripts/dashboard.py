@@ -133,7 +133,7 @@ with col1:
     if 'uploaded_file' in st.session_state:
         st.image(st.session_state.uploaded_file, caption="Uploaded Image", width=150)
     else:
-        st.write("No image uploaded yet.")
+        st.write("No image uploaded yet.")  # This will be replaced once an image is uploaded
 
 # Column 2: Display Releafs Token Manager text
 with col2:
@@ -152,10 +152,9 @@ with tab1:
 
     if uploaded_file is not None:
         st.session_state.uploaded_file = uploaded_file  # Store the uploaded file in session state
-        st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-        
-        # Clear the input directory and upload the file to GitHub
-        clear_input_directory()  
+        st.experimental_rerun()  # Immediately re-run the app to show the uploaded image
+        # Clear input directory and upload file
+        clear_input_directory()
         file_name = uploaded_file.name
         file_content = uploaded_file.getvalue()
 
@@ -165,9 +164,6 @@ with tab1:
             st.success(f"File {file_name} uploaded/updated successfully!")  # Only show this message
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
-
-        # Display the uploaded image instantly after upload
-        st.image(uploaded_file, caption="Uploaded Image", width=150)
 
 # Display Token Details Tab
 with tab2:
