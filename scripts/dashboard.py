@@ -132,32 +132,39 @@ st.write("""
     Thanks for holding a Releafs token.
 """)
 
-# Create tabs for Upload and Display
-tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
+# Create a container for the image and tabs
+col1, col2 = st.columns([1, 2])
 
-# Upload Image Tab
-with tab1:
-    uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
+with col1:
+    st.image(None, caption="Uploaded Image", use_column_width='auto', width=300)  # Placeholder for the uploaded image
 
-    if uploaded_file is not None:
-        st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-        st.write("Clearing input directory...")
-        clear_input_directory()
-        file_name = uploaded_file.name
-        file_content = uploaded_file.getvalue()
+with col2:
+    # Create tabs for Upload and Display
+    tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 
-        response = upload_file_to_github(file_name, file_content)
+    # Upload Image Tab
+    with tab1:
+        uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
 
-        if response.status_code in [201, 200]:
-            st.success(f"File {file_name} uploaded/updated successfully!")
-            # Display the uploaded image on the left side
-            st.image(uploaded_file, caption="Uploaded Image", use_column_width='auto', width=300)  # Adjust width as necessary
-        else:
-            st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+        if uploaded_file is not None:
+            st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
+            st.write("Clearing input directory...")
+            clear_input_directory()
+            file_name = uploaded_file.name
+            file_content = uploaded_file.getvalue()
 
-# Display Token Details Tab
-with tab2:
-    if st.button("Fetch Latest Token Details"):
-        with st.spinner("Fetching latest token details..."):
-            time.sleep(60)  # Adjust this based on your processing time
-            display_token_details()
+            response = upload_file_to_github(file_name, file_content)
+
+            if response.status_code in [201, 200]:
+                st.success(f"File {file_name} uploaded/updated successfully!")
+                # Display the uploaded image
+                col1.image(uploaded_file, caption="Uploaded Image", use_column_width='auto', width=300)  # Adjust width as necessary
+            else:
+                st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+
+    # Display Token Details Tab
+    with tab2:
+        if st.button("Fetch Latest Token Details"):
+            with st.spinner("Fetching latest token details..."):
+                time.sleep(60)  # Adjust this based on your processing time
+                display_token_details()
