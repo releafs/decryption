@@ -139,29 +139,24 @@ tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 with tab1:
     col1, col2 = st.columns([1, 2])  # Create two columns
 
-    with col1:  # Left column for the image
-        if 'uploaded_file' in st.session_state:
-            st.image(st.session_state.uploaded_file, caption="Uploaded Image", use_column_width='auto')  # Show uploaded image
-        else:
-            st.write("No image uploaded yet.")  # Placeholder message
-
     with col2:  # Right column for the uploader
         uploaded_file = st.file_uploader("Choose a PNG image to upload", type="png")
 
         if uploaded_file is not None:
             st.session_state.uploaded_file = uploaded_file  # Store the uploaded file in session state
             st.write(f"File selected: {uploaded_file.name} ({uploaded_file.size / 1024:.2f} KB)")
-            st.write("Clearing input directory...")
-            clear_input_directory()
+            
+            clear_input_directory()  # Clear the directory without extra messages
             file_name = uploaded_file.name
             file_content = uploaded_file.getvalue()
 
             response = upload_file_to_github(file_name, file_content)
 
             if response.status_code in [201, 200]:
-                st.success(f"File {file_name} uploaded/updated successfully!")
+                st.success(f"File {file_name} uploaded/updated successfully!")  # Only show this message
             else:
                 st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
+
 
 
 # Display Token Details Tab
