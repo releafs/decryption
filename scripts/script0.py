@@ -104,6 +104,10 @@ def upload_file_to_github(file_name, file_content, sha=None):
     return response
 
 # Function to fetch the artifact and display token details
+import os
+import pandas as pd
+import streamlit as st
+
 def display_token_details():
     # Path to the CSV file
     extracted_csv_file = 'process/merged_data_with_metadata.csv'
@@ -120,14 +124,8 @@ def display_token_details():
     else:
         print(f"CSV file found at {os.path.abspath(extracted_csv_file)}")
 
-    # Read the CSV and display token details
-    try:
-        df = pd.read_csv(extracted_csv_file)
-        print(f"CSV file read successfully. Number of rows: {len(df)}")
-    except Exception as e:
-        st.error(f"Error reading the CSV file: {e}")
-        print(f"Error reading the CSV file: {e}")
-        return
+    # Disable caching to always load the latest CSV
+    df = pd.read_csv(extracted_csv_file)  # No @st.cache_data here
     
     if df.empty:
         st.error("CSV file is empty.")
@@ -158,6 +156,7 @@ def display_token_details():
     # Display content in Streamlit
     st.write("### Token Information:")
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
+
 
 # Streamlit Page Layout
 st.title("Scan Your Releafs' Token")
