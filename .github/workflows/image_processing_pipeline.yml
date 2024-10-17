@@ -73,18 +73,22 @@ jobs:
           echo "Output file found!"
         fi
 
-    # Step 10: Pull, resolve conflicts, commit and push processed result
+    # Step 10: Pull, resolve conflicts, commit, and push processed result
     - name: Pull, resolve conflicts, and push processed result
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
         
-        # Stash changes and pull latest changes from remote
-        git stash
-        git pull origin main --rebase
+        # Check if there are changes to stash
+        if [ -n "$(git status --porcelain)" ]; then
+          git stash
+          git pull origin main --rebase
+          git stash pop || true
+        else
+          git pull origin main --rebase
+        fi
         
-        # Apply stashed changes and commit new files
-        git stash pop
+        # Add and commit changes if there are any
         git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
         git diff --cached --quiet || git commit -m "Add processed result for ${{ github.sha }}"
         
