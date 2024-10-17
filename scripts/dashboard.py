@@ -150,13 +150,14 @@ with tab1:
 
         if response.status_code in [201, 200]:
             st.success(f"File {file_name} uploaded/updated successfully!")
+            # Display the uploaded image on the left side
+            st.image(uploaded_file, caption="Uploaded Image", use_column_width='auto', width=300)  # Adjust width as necessary
         else:
             st.error(f"Failed to upload {file_name}. Response: {response.status_code}, {response.text}")
 
 # Display Token Details Tab
 with tab2:
     if st.button("Fetch Latest Token Details"):
-        st.write("Fetching latest token details...")
-        time.sleep(60)  # Adjust this based on your processing time
-        display_token_details()
-
+        with st.spinner("Fetching latest token details..."):
+            time.sleep(60)  # Adjust this based on your processing time
+            display_token_details()
