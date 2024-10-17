@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import streamlit as st
+import time
 
 def display_token_details():
     # Path to the CSV file
@@ -51,5 +52,15 @@ def display_token_details():
     st.write("### Token Information:")
     st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
-if __name__ == '__main__':
+# Streamlit Page Layout
+st.title("Fetch Latest Releafs Token Details")
+
+# Add a "Fetch Latest" button
+if st.button("Fetch Latest"):
+    st.write("Fetching latest token details...")
+    # Wait for 60 seconds to ensure the latest processing is done
+    with st.spinner('Waiting for the backend process to complete (60 seconds)...'):
+        time.sleep(60)  # You can adjust the sleep time based on your process duration
+
+    # Fetch and display the latest token details
     display_token_details()
