@@ -1,160 +1,65 @@
-name: Image Processing Pipeline
+name: Process and Display Image Tokens
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'decryption/input/**'
+  workflow_dispatch: # This can be triggered manually
 
 jobs:
   process-images:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write  # Allow pushing changes to the repository
-
     steps:
-    # Step 1: Check out the repository
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        persist-credentials: true  # Ensure Git credentials are available
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    # Step 2: Cache pip dependencies
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
+      # Step 2: Set up Python (Skip if environment pre-configured)
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    # Step 3: Set up Python environment
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      # Step 3: Install Dependencies (Skip if pre-configured)
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    # Step 4: Install dependencies (only if not cached)
-    - name: Install Dependencies
-      run: |
-        pip install -r requirements.txt
+      # Step 4: Clean process directory
+      - name: Clean process directory
+        run: |
+          echo "Cleaning process directory..."
+          rm -rf process/*
+          echo "Process directory cleaned."
 
-    # Step 5: Clean process directory (clear old CSVs)
-    - name: Clean process directory
-      run: |
-        echo "Cleaning process directory..."
-        rm -rf process/*
-        echo "Process directory cleaned."
+      # Step 5: Ensure Input Directory
+      - name: Ensure Input Directory
+        run: |
+          mkdir -p decryption/input
+          echo "Input directory ensured."
 
-    # Step 6: Ensure the input directory exists before running any scripts
-    - name: Create input directory if missing
-      run: |
-        mkdir -p decryption/input
-        echo "Input directory ensured."
+      # Step 6: Process Image (Run all scripts in sequence)
+      - name: Process Image and Generate Data
+        run: |
+          echo "Running script1.py..."
+          python scripts/script1.py
+          echo "Running script2.py..."
+          python scripts/script2.py
+          echo "Running script3.py..."
+          python scripts/script3.py
 
-    # Step 7: Debugging - List files in input directory to confirm they're present
-    - name: Check input directory for PNGs
-      run: |
-        echo "Checking input directory for PNGs:"
-        ls -la decryption/input/
+      # Step 7: Verify output and upload
+      - name: Verify and Upload Processed Data
+        if: success()
+        run: |
+          if [ -f "process/merged_data_with_metadata.csv" ]; then
+            echo "Output file 'merged_data_with_metadata.csv' found!"
+            # Upload the processed results
+            echo "Uploading processed results..."
+          else
+            echo "Error: Output file not found!"
+            exit 1
+          fi
 
-    # Step 8: Run the main processing scripts
-    - name: Run processing scripts
-      run: |
-        echo "Running script1.py..."
-        python scripts/script1.py
-        echo "Running script2.py..."
-        python scripts/script2.py
-        echo "Running script3.py..."
-        python scripts/script3.py
-
-    # Step 9: Verify if the output file exists
-    - name: Verify output file exists
-      run: |
-        if [ ! -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Error: Output file not found!"
-          exit 1
-        else
-          echo "Output file 'process/merged_data_with_metadata.csv' found!"
-        fi
-
-    # Step 10: Pull, resolve conflicts, commit, and push processed result
-    - name: Pull, resolve conflicts, and push processed result
-      run: |
-        git config --global user.email "action@github.com"
-        git config --global user.name "GitHub Action"
-
-        # Display current working directory and git status for debug
-        echo "Current working directory: $(pwd)"
-        echo "Git status before stashing:"
-        git status
-
-        # Pull latest changes and handle potential conflicts before stashing
-        echo "Pulling the latest changes..."
-        git pull origin main --rebase || true
-
-        # Check if there are changes to stash
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "Changes detected, stashing changes..."
-          git stash
-          git pull origin main --rebase
-          git stash pop || true
-          echo "Stashed changes applied after pull."
-        else
-          echo "No local changes detected, continuing."
-        fi
-
-        # Debug: Verify if the files are updated and available
-        echo "Verifying if the processed files exist:"
-        if [ -f "process/merged_data_with_metadata.csv" ]; then
-          echo "'merged_data_with_metadata.csv' found."
-        else
-          echo "Error: 'merged_data_with_metadata.csv' not found!"
-          exit 1
-        fi
-
-        # Add and commit changes if there are any
-        git add process/decrypted_data.csv process/decrypted_data_with_binary.csv process/merged_data_with_metadata.csv
-        if git diff --cached --quiet; then
-          echo "No changes to commit."
-        else
-          echo "Changes detected, committing the processed result..."
-          git commit -m "Add processed result for ${{ github.sha }}"
-        fi
-        
-        # Push changes to the main branch, retry with rebase if push fails
-        git push || (
-          echo "Push failed, attempting rebase..."
-          git pull origin main --rebase
-          git push --force
-          echo "Push successful after rebase."
-        )
-
-    # Step 11: Upload the processed result as an artifact
-    - name: Upload processed result as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: processed-results-${{ github.sha }}
-        path: process/merged_data_with_metadata.csv
-
-    # Step 12: Run script4.py to delete input files after processing
-    # Step 12: Run script4.py to delete input files after processing
-    - name: Delete input files and directory after processing
-      run: |
-        if [ -f "process/merged_data_with_metadata.csv" ]; then
-          echo "Deleting input files and directory..."
-          python scripts/script4.py
-          echo "Input files deleted."
-        else
-          echo "Skipping deletion: output file not found."
-        fi  # <-- You must close the 'if' block with 'fi'
-
-    
-    # Step 13: Run script_display.py to fetch and display token details
-    - name: Run display token details
-      run: |
-        echo "Running script_display.py to fetch and display token details..."
-        python scripts/script_display.py
-        echo "Token details displayed."
+      # Step 8: Fetch and Display Token Details
+      - name: Fetch and Display Token Details
+        run: |
+          echo "Running script_display.py to fetch and display token details..."
+          python scripts/script_display.py
