@@ -125,6 +125,13 @@ def display_token_details():
 # Streamlit Page Layout
 st.title("Releafs Token Manager")
 
+# Add the message at the top
+st.write("""
+    Each token represents a climate action impact on the ground. 
+    When you scan, you will find out the status of your token. 
+    Thanks for holding a Releafs token.
+""")
+
 # Create tabs for Upload and Display
 tab1, tab2 = st.tabs(["Upload Image", "Display Token Details"])
 
@@ -152,3 +159,4 @@ with tab2:
         st.write("Fetching latest token details...")
         time.sleep(60)  # Adjust this based on your processing time
         display_token_details()
+
