@@ -164,5 +164,5 @@ with tab1:
 with tab2:
     if st.button("Show Token Details"):
         with st.spinner("Showing Your Token Details..."):
-            time.sleep(60)  # Adjust this based on your processing time
+            time.sleep(35)  # Adjust this based on your processing time
             display_token_details()
