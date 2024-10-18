@@ -89,8 +89,9 @@ def upload_file_to_github(file_name, file_content):
     })
     return response
 
-# Function to display token details using the direct URL of the CSV
 def display_token_details():
+    CSV_URL = "https://raw.githubusercontent.com/releafs/decryption/main/process/merged_data_with_metadata.csv"
+    
     try:
         # Directly read the CSV data from the URL using Pandas
         df = pd.read_csv(CSV_URL)
@@ -120,8 +121,10 @@ def display_token_details():
 
         st.write("### Token Information:")
         st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
+    
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+
 
 
 # Streamlit Page Layout
