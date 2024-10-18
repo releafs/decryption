@@ -87,40 +87,40 @@ def upload_file_to_github(file_name, file_content):
     return response
 
 # Function to display token details using the fetched CSV
+# Function to display token details using the direct URL of the CSV
 def display_token_details():
-    csv_file_path = 'process/merged_data_with_metadata.csv'
-    
-    if not os.path.exists(csv_file_path):
-        st.error(f"CSV file not found at: {csv_file_path}")
-        return
+    try:
+        # Directly read the CSV data from the URL using Pandas
+        df = pd.read_csv(CSV_URL)
 
-    df = pd.read_csv(csv_file_path)
+        if df.empty:
+            st.error("CSV file is empty.")
+            return
 
-    if df.empty:
-        st.error("CSV file is empty.")
-        return
+        last_row = df.iloc[-1]
+        parameters = {
+            "Latitude": last_row["Latitude"],
+            "Longitude": last_row["Longitude"],
+            "Type of Token": last_row["Type of Token"],
+            "Description": last_row["description"],
+            "External URL": last_row["external_url"],
+            "Starting Project": last_row["Starting Project"],
+            "Unit": last_row["Unit"],
+            "Deleverable": last_row["Deleverable"],
+            "Years Duration": last_row["Years_Duration"],
+            "Impact Type": last_row["Impact Type"],
+            "SDGs": last_row["SDGs"],
+            "Implementer Partner": last_row["Implementer Partner"],
+            "Internal Verification": last_row["Internal Verification"],
+            "Local Verification": last_row["Local Verification"],
+            "Imv Document": last_row["Imv_Document"]
+        }
 
-    last_row = df.iloc[-1]
-    parameters = {
-        "Latitude": last_row["Latitude"],
-        "Longitude": last_row["Longitude"],
-        "Type of Token": last_row["Type of Token"],
-        "Description": last_row["description"],
-        "External URL": last_row["external_url"],
-        "Starting Project": last_row["Starting Project"],
-        "Unit": last_row["Unit"],
-        "Deleverable": last_row["Deleverable"],
-        "Years Duration": last_row["Years_Duration"],
-        "Impact Type": last_row["Impact Type"],
-        "SDGs": last_row["SDGs"],
-        "Implementer Partner": last_row["Implementer Partner"],
-        "Internal Verification": last_row["Internal Verification"],
-        "Local Verification": last_row["Local Verification"],
-        "Imv Document": last_row["Imv_Document"]
-    }
+        st.write("### Token Information:")
+        st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
 
-    st.write("### Token Information:")
-    st.table(pd.DataFrame.from_dict(parameters, orient='index', columns=['Value']).reset_index().rename(columns={"index": "Parameter"}))
 
 # Streamlit Page Layout
 st.title("Scan Your Releafs' Token")
