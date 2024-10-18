@@ -10,6 +10,9 @@ GITHUB_REPO = "releafs/decryption"
 GITHUB_BRANCH = "main"
 GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
 
+# Define the direct URL to the CSV file
+CSV_URL = "https://raw.githubusercontent.com/releafs/decryption/main/process/merged_data_with_metadata.csv"
+
 input_directory_in_github = "decryption/input/"
 
 # Function to create a placeholder file if the directory does not exist
@@ -86,7 +89,6 @@ def upload_file_to_github(file_name, file_content):
     })
     return response
 
-# Function to display token details using the fetched CSV
 # Function to display token details using the direct URL of the CSV
 def display_token_details():
     try:
